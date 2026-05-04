@@ -1,86 +1,100 @@
-// Tabla de lookup simplificada para Costa Rica (expandir según necesidad)
-const CR_REGIONS: Record<string, { canton: string; distrito: string }[]> = {
-  'San José': [
-    { canton: 'San José', distrito: 'Carmen' },
-    { canton: 'San José', distrito: 'Merced' },
-    { canton: 'Escazú', distrito: 'San Rafael' },
-    { canton: 'Desamparados', distrito: 'San Miguel' },
-    { canton: 'Puriscal', distrito: 'Santiago' },
-    { canton: 'Tibás', distrito: 'San Juan' },
-    { canton: 'Moravia', distrito: 'San Vicente' },
-    { canton: 'Montes de Oca', distrito: 'San Pedro' },
-    { canton: 'Turrialba', distrito: 'Turrialba' },
-    { canton: 'Curridabat', distrito: 'Curridabat' },
-    { canton: 'Curridabat', distrito: 'Granadilla' },
-  ],
-  Alajuela: [
-    { canton: 'Alajuela', distrito: 'Alajuela' },
-    { canton: 'San Ramón', distrito: 'San Ramón' },
-    { canton: 'Grecia', distrito: 'Grecia' },
-  ],
-  Cartago: [
-    { canton: 'Cartago', distrito: 'Oriental' },
-    { canton: 'Paraíso', distrito: 'Paraíso' },
-    { canton: 'La Unión', distrito: 'Tres Ríos' },
-  ],
-  Heredia: [
-    { canton: 'Heredia', distrito: 'Heredia' },
-    { canton: 'Barva', distrito: 'Barva' },
-    { canton: 'Santa Bárbara', distrito: 'Santa Bárbara' },
-  ],
-  Guanacaste: [{ canton: 'Liberia', distrito: 'Liberia' }],
-  Puntarenas: [{ canton: 'Puntarenas', distrito: 'Puntarenas' }],
-  Limón: [{ canton: 'Limón', distrito: 'Limón' }],
-};
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+export interface LocationResult {
+  provincia: string;
+  canton: string;
+  distrito: string;
+}
 
 /**
- * Convierte coordenadas GPS en Provincia/Cantón/Distrito (lógica simplificada por bounding boxes).
- * En producción, usar reverse geocoding de Google Maps o Nominatim.
+ * Convierte coordenadas GPS a Provincia / Cantón / Distrito usando
+ * Nominatim (OpenStreetMap) — sin API key, gratis, exacto.
+ *
+ * Nominatim requiere User-Agent no vacío y max 1 req/seg.
+ * En producción considerá cachear el resultado.
  */
-export const coordsToLocation = (
+export const reverseGeocodeLocation = async (
   lat: number,
   lng: number,
-): { provincia: string; canton: string; distrito: string } => {
-  // Bounding boxes aproximadas para provincias de Costa Rica
-  if (lat >= 9.7 && lat <= 10.2 && lng >= -84.4 && lng <= -83.7) {
-    const provincia = 'San José';
-    const regions = CR_REGIONS[provincia];
-    // Detectar cantón por sub-bounding box
-    if (lat >= 9.89 && lat <= 9.95 && lng >= -84.15 && lng <= -84.05) {
-      return { provincia, canton: 'Curridabat', distrito: 'Granadilla' };
-    }
-    if (lat >= 9.93 && lng >= -84.07 && lng <= -84.0) {
-      return { provincia, canton: 'Montes de Oca', distrito: 'San Pedro' };
-    }
-    if (lat >= 9.87 && lat <= 9.91 && lng >= -84.12 && lng <= -84.0) {
-      return { provincia, canton: 'Desamparados', distrito: 'San Miguel' };
-    }
-    // Fallback aleatorio dentro de SJ
-    const r = regions[Math.floor(Math.random() * regions.length)];
-    return { provincia, canton: r.canton, distrito: r.distrito };
+): Promise<LocationResult> => {
+  try {
+    const url =
+      `https://nominatim.openstreetmap.org/reverse` +
+      `?lat=${lat}&lon=${lng}&format=json&accept-language=es` +
+      `&addressdetails=1&zoom=18`;
+
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'VirtualAgentApp/1.0 (bienes.raices.cr)',
+        'Accept-Language': 'es',
+      },
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+    const addr = data.address ?? {};
+
+    // ── Provincia ──────────────────────────────────────────────────────────
+    // Nominatim devuelve: "Provincia de San José", "Provincia San José", "San José"
+    const rawProvincia: string = addr.state ?? addr.province ?? '';
+    const provincia = rawProvincia
+      .replace(/^Provincia\s+(de\s+)?/i, '')
+      .trim() || 'San José';
+
+    // ── Cantón ─────────────────────────────────────────────────────────────
+    // En CR, 'county' suele ser el cantón. Fallbacks en orden de precisión.
+    const canton: string =
+      addr.county ??
+      addr.municipality ??
+      addr.city ??
+      addr.town ??
+      addr.village ??
+      'Desconocido';
+
+    // ── Distrito ───────────────────────────────────────────────────────────
+    // Nominatim puede devolver suburb, quarter, district, neighbourhood, hamlet
+    const distrito: string =
+      addr.suburb ??
+      addr.quarter ??
+      addr.district ??
+      addr.neighbourhood ??
+      addr.hamlet ??
+      addr.residential ??
+      canton; // fallback: mismo que cantón
+
+    return { provincia, canton, distrito };
+  } catch (err) {
+    console.warn('[Nominatim] reverse geocoding falló, usando fallback:', err);
+    // Fallback de bounding boxes básico (solo San José metropolitano)
+    return fallbackLocation(lat, lng);
   }
-  if (lat >= 9.9 && lat <= 10.3 && lng >= -84.7 && lng <= -84.1) {
-    const provincia = 'Alajuela';
-    return { provincia, canton: 'Alajuela', distrito: 'Alajuela' };
+};
+
+/** Fallback offline si Nominatim no responde */
+const fallbackLocation = (lat: number, lng: number): LocationResult => {
+  if (lat >= 9.91 && lat <= 9.96 && lng >= -84.10 && lng <= -84.04) {
+    return { provincia: 'San José', canton: 'Curridabat', distrito: 'Granadilla' };
   }
-  if (lat >= 9.8 && lat <= 10.0 && lng >= -83.8 && lng <= -83.5) {
-    return { provincia: 'Cartago', canton: 'Cartago', distrito: 'Oriental' };
+  if (lat >= 9.93 && lat <= 9.95 && lng >= -84.06 && lng <= -84.0) {
+    return { provincia: 'San José', canton: 'Montes de Oca', distrito: 'San Pedro' };
   }
-  if (lat >= 10.0 && lat <= 10.2 && lng >= -84.2 && lng <= -83.9) {
-    return { provincia: 'Heredia', canton: 'Heredia', distrito: 'Heredia' };
+  if (lat >= 9.87 && lat <= 9.91 && lng >= -84.12 && lng <= -84.0) {
+    return { provincia: 'San José', canton: 'Desamparados', distrito: 'San Miguel' };
   }
-  // Default
   return { provincia: 'San José', canton: 'San José', distrito: 'Carmen' };
 };
 
-export const formatCurrency = (amount: number): string => {
-  return `₡${amount.toLocaleString('es-CR')}`;
-};
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+export const formatCurrency = (amount: number): string =>
+  `₡${amount.toLocaleString('es-CR')}`;
 
-export const formatDate = (iso: string): string => {
-  return new Date(iso).toLocaleDateString('es-CR', {
+export const formatDate = (iso: string): string =>
+  new Date(iso).toLocaleDateString('es-CR', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
   });
-};
+
+/** Regex de validación de correo electrónico */
+export const isValidEmail = (email: string): boolean =>
+  /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(email.trim());

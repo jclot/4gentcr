@@ -6,6 +6,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/useAppStore';
 import { Colors } from '../../theme/colors';
 import { formatDate } from '../../utils/locationUtils';
+import {
+  MessageSquare,
+  ShieldCheck,
+  UserCircle,
+  Heart,
+  Send
+} from 'lucide-react-native';
 
 export default function CommunityScreen() {
   const { db, addPost, likePost, getCurrentUser } = useAppStore();
@@ -19,10 +26,13 @@ export default function CommunityScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
-          <Text style={styles.title}>💬 Comunidad Scout</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <MessageSquare size={24} color={Colors.textPrimary} />
+            <Text style={styles.title}>Comunidad Scout</Text>
+          </View>
           <Text style={styles.subtitle}>{db.community.length} publicaciones</Text>
         </View>
 
@@ -31,7 +41,11 @@ export default function CommunityScreen() {
             <View key={post.id} style={styles.postCard}>
               <View style={styles.postHeader}>
                 <View style={styles.postAvatar}>
-                  <Text style={{ fontSize: 20 }}>{post.userId === 'admin1' ? '🛡️' : '🧑‍💼'}</Text>
+                  {post.userId === 'admin1' ? (
+                    <ShieldCheck size={20} color={Colors.accent} />
+                  ) : (
+                    <UserCircle size={20} color={Colors.accent} />
+                  )}
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.postName}>{post.userName}</Text>
@@ -43,7 +57,8 @@ export default function CommunityScreen() {
                 style={styles.likeBtn}
                 onPress={() => likePost(post.id)}
               >
-                <Text style={styles.likeText}>❤️ {post.likes}</Text>
+                <Heart size={16} color={Colors.danger} />
+                <Text style={styles.likeText}>{post.likes}</Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -65,7 +80,7 @@ export default function CommunityScreen() {
             onPress={handlePost}
             disabled={!newMessage.trim()}
           >
-            <Text style={{ fontSize: 20 }}>📨</Text>
+            <Send size={20} color={Colors.white} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -77,7 +92,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
   header: { padding: 20, paddingBottom: 12 },
   title: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary },
-  subtitle: { fontSize: 13, color: Colors.textSecondary },
+  subtitle: { fontSize: 13, color: Colors.textSecondary, marginTop: 4 },
   feed: { padding: 16, gap: 12, paddingBottom: 20 },
   postCard: { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, gap: 10 },
   postHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -89,7 +104,13 @@ const styles = StyleSheet.create({
   postName: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary },
   postDate: { fontSize: 11, color: Colors.textSecondary },
   postText: { fontSize: 14, color: Colors.textPrimary, lineHeight: 22 },
-  likeBtn: { alignSelf: 'flex-start', paddingVertical: 4 },
+  likeBtn: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
   likeText: { fontSize: 14, color: Colors.textSecondary },
   composer: {
     flexDirection: 'row',

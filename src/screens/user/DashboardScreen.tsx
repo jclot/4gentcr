@@ -1,18 +1,28 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/useAppStore';
 import { Colors } from '../../theme/colors';
 import { formatCurrency, formatDate } from '../../utils/locationUtils';
+import {
+  Hand,
+  Home,
+  Smartphone,
+  CircleDollarSign,
+  TrendingUp,
+  Camera,
+  Circle,
+  Clock
+} from 'lucide-react-native';
 import Card from '../../components/Card';
 
 const MetricCard = ({
-  label, value, emoji, color,
+  label, value, Icon, color,
 }: {
-  label: string; value: string; emoji: string; color: string;
+  label: string; value: string; Icon: any; color: string;
 }) => (
   <View style={[metricStyles.card, { borderColor: color, borderWidth: 1 }]}>
-    <Text style={metricStyles.emoji}>{emoji}</Text>
+    <Icon size={28} color={color} />
     <Text style={[metricStyles.value, { color }]}>{value}</Text>
     <Text style={metricStyles.label}>{label}</Text>
   </View>
@@ -25,16 +35,15 @@ const metricStyles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
     minWidth: '44%',
   },
-  emoji: { fontSize: 28 },
   value: { fontSize: 18, fontWeight: '800' },
   label: { fontSize: 11, color: Colors.textSecondary, textAlign: 'center' },
 });
 
 export default function DashboardScreen() {
-  const { getCurrentUser, getPropertiesByUser, db } = useAppStore();
+  const { getCurrentUser, getPropertiesByUser } = useAppStore();
   const user = getCurrentUser()!;
   const properties = getPropertiesByUser(user.id);
 
@@ -49,17 +58,29 @@ export default function DashboardScreen() {
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   ).slice(0, 5);
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'nueva': return <Circle fill={Colors.success} color={Colors.success} size={20} />;
+      case 'en_negociacion': return <Circle fill={Colors.warning} color={Colors.warning} size={20} />;
+      case 'contrato_cerrado': return <Circle fill={Colors.danger} color={Colors.danger} size={20} />;
+      default: return <Circle fill={Colors.textSecondary} color={Colors.textSecondary} size={20} />;
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Hola, {user.nombres.split(' ')[0]} 👋</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={styles.greeting}>Hola, {user.nombres.split(' ')[0]}</Text>
+              <Hand size={24} color={Colors.textPrimary} />
+            </View>
             <Text style={styles.subgreeting}>Aquí está tu resumen</Text>
           </View>
           <View style={styles.avatarBadge}>
-            <Text style={{ fontSize: 28 }}>🏡</Text>
+            <Home size={24} color={Colors.accent} />
           </View>
         </View>
 
@@ -68,14 +89,20 @@ export default function DashboardScreen() {
           <Text style={styles.incomeLabel}>Ingresos Totales</Text>
           <Text style={styles.incomeValue}>{formatCurrency(user.totalIngresos)}</Text>
           <View style={styles.incomeRow}>
-            <Text style={styles.incomeDetail}>📱 SINPE: {user.telefonoSinpe}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Smartphone size={14} color="rgba(255,255,255,0.75)" />
+              <Text style={styles.incomeDetail}>SINPE: {user.telefonoSinpe}</Text>
+            </View>
             <Text style={styles.incomeDetail}>alias: {user.alias}</Text>
           </View>
         </View>
 
         {/* Reglas de pago */}
         <Card>
-          <Text style={styles.sectionTitle}>💰 Estructura de Pagos</Text>
+          <View style={styles.sectionHeader}>
+            <CircleDollarSign size={18} color={Colors.textPrimary} />
+            <Text style={styles.sectionTitle}>Estructura de Pagos</Text>
+          </View>
           {[
             { label: 'Propiedad Nueva', value: '₡250', color: Colors.success },
             { label: 'Gestión / Exclusividad', value: '₡2,000', color: Colors.warning },
@@ -90,21 +117,30 @@ export default function DashboardScreen() {
         </Card>
 
         {/* Métricas */}
-        <Text style={styles.sectionTitle}>📈 Mis Propiedades</Text>
+        <View style={styles.sectionHeader}>
+          <TrendingUp size={20} color={Colors.textPrimary} />
+          <Text style={styles.sectionTitle}>Mis Propiedades</Text>
+        </View>
         <View style={styles.metricsGrid}>
-          <MetricCard label="Total capturadas" value={String(properties.length)} emoji="📷" color={Colors.accent} />
-          <MetricCard label="Nuevas (verde)" value={String(stats.nueva)} emoji="🟢" color={Colors.success} />
-          <MetricCard label="En negociación" value={String(stats.negociacion)} emoji="🟡" color={Colors.warning} />
-          <MetricCard label="Ventas cerradas" value={String(stats.cerrado)} emoji="🔴" color={Colors.danger} />
+          <MetricCard label="Total capturadas" value={String(properties.length)} Icon={Camera} color={Colors.accent} />
+          <MetricCard label="Nuevas (verde)" value={String(stats.nueva)} Icon={Circle} color={Colors.success} />
+          <MetricCard label="En negociación" value={String(stats.negociacion)} Icon={Circle} color={Colors.warning} />
+          <MetricCard label="Ventas cerradas" value={String(stats.cerrado)} Icon={Circle} color={Colors.danger} />
         </View>
 
         {/* Recientes */}
-        <Text style={styles.sectionTitle}>🕐 Actividad Reciente</Text>
+        <View style={styles.sectionHeader}>
+          <Clock size={20} color={Colors.textPrimary} />
+          <Text style={styles.sectionTitle}>Actividad Reciente</Text>
+        </View>
         {recentProps.length === 0 ? (
           <Card>
-            <Text style={{ color: Colors.textSecondary, textAlign: 'center' }}>
-              Aún no has capturado propiedades. ¡Empieza con la cámara! 📷
-            </Text>
+            <View style={{ alignItems: 'center', gap: 8 }}>
+              <Camera size={32} color={Colors.textSecondary} />
+              <Text style={{ color: Colors.textSecondary, textAlign: 'center' }}>
+                Aún no has capturado propiedades. ¡Empieza con la cámara!
+              </Text>
+            </View>
           </Card>
         ) : (
           recentProps.map(p => (
@@ -114,9 +150,7 @@ export default function DashboardScreen() {
                 <Text style={styles.propTitle}>{p.tipo} · {p.canton}</Text>
                 <Text style={styles.propSub}>{formatDate(p.createdAt)} · {formatCurrency(p.ingreso)}</Text>
               </View>
-              <Text style={{ fontSize: 20 }}>
-                {p.status === 'nueva' ? '🟢' : p.status === 'en_negociacion' ? '🟡' : p.status === 'contrato_cerrado' ? '🔴' : '⚫'}
-              </Text>
+              {getStatusIcon(p.status)}
             </View>
           ))
         )}
@@ -143,6 +177,7 @@ const styles = StyleSheet.create({
   incomeValue: { fontSize: 40, fontWeight: '900', color: Colors.white },
   incomeRow: { flexDirection: 'row', gap: 16, marginTop: 8 },
   incomeDetail: { fontSize: 12, color: 'rgba(255,255,255,0.75)' },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary },
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   ruleRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: Colors.border },

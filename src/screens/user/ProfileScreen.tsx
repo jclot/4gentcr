@@ -1,132 +1,213 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { useAppStore } from '../../store/useAppStore';
+import { useModalStore } from '../../store/useModalStore';
 import { Colors } from '../../theme/colors';
 import { formatCurrency } from '../../utils/locationUtils';
-import Input from '../../components/Input';
-import Button from '../../components/Button';
-import Card from '../../components/Card';
+import {
+  User, Bell, Shield, LifeBuoy, MessageSquare,
+  FileText, LogOut, ChevronRight, Palette, Lock, MapPin, Trophy
+} from 'lucide-react-native';
 
 export default function ProfileScreen() {
-  const { getCurrentUser, updateUser, logout } = useAppStore();
-  const user = getCurrentUser()!;
+  const { getCurrentUser, logout, db } = useAppStore();
+  const { confirm } = useModalStore();
+  const navigation = useNavigation<any>();
+  const user = getCurrentUser();
 
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({
-    nombres: user.nombres,
-    correo: user.correo,
-    telefono: user.telefono,
-    telefonoSinpe: user.telefonoSinpe,
-    alias: user.alias,
-    direccion: user.direccion,
-  });
-  const [saving, setSaving] = useState(false);
+  if (!user) return null;
 
-  const set = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }));
+  // Lógica para estadísticas (solo para scouts)
+  const misPropiedades = db.properties.filter(p => p.capturedBy === user.id);
+  const totalGenerado = misPropiedades.reduce((acc, curr) => acc + curr.ingreso, 0);
 
-  const handleSave = () => {
-    const changed = form.correo !== user.correo || form.telefono !== user.telefono;
-    setSaving(true);
-    setTimeout(() => {
-      updateUser(user.id, form);
-      setSaving(false);
-      setEditing(false);
-      if (changed) {
-        Alert.alert(
-          '📨 Verificación Requerida',
-          'Detectamos cambios en tu correo/teléfono. En un sistema real, recibirías un código de verificación.',
-        );
-      } else {
-        Alert.alert('✅ Perfil actualizado');
-      }
-    }, 600);
+  // Función para obtener las iniciales del usuario (Ej: "Juan Perez" -> "JP")
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
   };
 
   const handleLogout = () => {
-    Alert.alert('Cerrar Sesión', '¿Estás seguro?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Salir', style: 'destructive', onPress: logout },
-    ]);
+    confirm({
+      title: 'Cerrar Sesión',
+      message: '¿Estás seguro de que deseas salir de tu cuenta?',
+      confirmLabel: 'Salir',
+      cancelLabel: 'Cancelar',
+      variant: 'danger',
+      onConfirm: () => logout(),
+    });
   };
 
+  const openURL = async (url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      confirm({
+        title: 'Error',
+        message: 'No pudimos abrir el enlace en este momento.',
+        confirmLabel: 'OK',
+        onConfirm: () => { },
+      });
+    }
+  };
+
+  const SettingItem = ({
+    icon: Icon, title, subtitle, onPress, isDestructive = false, hideChevron = false
+  }: any) => (
+    <TouchableOpacity style={styles.settingItem} onPress={onPress} activeOpacity={0.7}>
+      <View style={[styles.iconBox, isDestructive && { backgroundColor: Colors.dangerLight }]}>
+        <Icon size={20} color={isDestructive ? Colors.danger : Colors.textPrimary} />
+      </View>
+      <View style={styles.settingTextContent}>
+        <Text style={[styles.settingTitle, isDestructive && { color: Colors.danger }]}>
+          {title}
+        </Text>
+        {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
+      </View>
+      {!hideChevron && <ChevronRight size={20} color={Colors.textSecondary} />}
+    </TouchableOpacity>
+  );
+
+  const Section = ({ title, children }: any) => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.card}>{children}</View>
+    </View>
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {/* Avatar */}
-        <View style={styles.avatarSection}>
-          <View style={styles.avatarCircle}>
-            <Text style={{ fontSize: 48 }}>
-              {user.role === 'admin' ? '🛡️' : '🧑‍💼'}
-            </Text>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+
+        {/* HEADER CON AVATAR DE INICIALES */}
+        <View style={styles.header}>
+          <View style={styles.initialsAvatar}>
+            <Text style={styles.initialsText}>{getInitials(user.nombres)}</Text>
           </View>
-          <Text style={styles.userName}>{user.nombres}</Text>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>{user.role === 'admin' ? '⚙️ Administrador' : '🏡 Scout'}</Text>
+          <View style={styles.headerInfo}>
+            <Text style={styles.name}>{user.nombres}</Text>
+            <Text style={styles.email}>{user.correo}</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>@{user.alias} • {user.role === 'admin' ? 'Administrador' : 'Scout'}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Stats */}
         {user.role === 'scout' && (
-          <Card>
-            <Text style={styles.sectionLabel}>Mis Estadísticas</Text>
-            <View style={styles.statsGrid}>
-              {[
-                { label: 'Ingresos', value: formatCurrency(user.totalIngresos), emoji: '💰' },
-                { label: 'Capturadas', value: String(user.propiedadesCapturadas), emoji: '📷' },
-                { label: 'Gestionadas', value: String(user.propiedadesGestionadas), emoji: '🤝' },
-                { label: 'Ventas', value: String(user.propiedadesVendidas), emoji: '🏆' },
-              ].map(s => (
-                <View key={s.label} style={styles.statItem}>
-                  <Text style={styles.statEmoji}>{s.emoji}</Text>
-                  <Text style={styles.statValue}>{s.value}</Text>
-                  <Text style={styles.statLabel}>{s.label}</Text>
-                </View>
-              ))}
+          <View style={styles.statsCard}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{misPropiedades.length}</Text>
+              <Text style={styles.statLabel}>Capturas</Text>
             </View>
-          </Card>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{formatCurrency(totalGenerado)}</Text>
+              <Text style={styles.statLabel}>Generado</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <MapPin size={24} color={Colors.accent} style={{ marginBottom: 4 }} />
+              <Text style={styles.statLabel}>{user.direccion.split(',')[0] || 'Costa Rica'}</Text>
+            </View>
+          </View>
         )}
 
-        {/* Datos editables */}
-        <View style={styles.formCard}>
-          <View style={styles.formHeader}>
-            <Text style={styles.sectionLabel}>Información Personal</Text>
-            <TouchableOpacity onPress={() => setEditing(e => !e)}>
-              <Text style={{ color: Colors.accent, fontWeight: '700' }}>{editing ? 'Cancelar' : '✏️ Editar'}</Text>
-            </TouchableOpacity>
-          </View>
+        <Section title="Configuración de Cuenta">
+          <SettingItem
+            icon={User}
+            title="Datos Personales"
+            subtitle="Actualiza tu alias, teléfono y dirección"
+            onPress={() => navigation.navigate('PersonalData')}
+          />
+          <View style={styles.divider} />
+          <SettingItem
+            icon={Palette}
+            title="Personalización"
+            subtitle="Tema de la app y preferencias visuales"
+            onPress={() => navigation.navigate('Customization')}
+          />
+          <View style={styles.divider} />
+          <SettingItem
+            icon={Bell}
+            title="Notificaciones"
+            subtitle="Alertas de pagos y nuevas zonas"
+            onPress={() => navigation.navigate('Notifications')}
+          />
+        </Section>
 
-          <Input label="Nombre completo" value={form.nombres} onChangeText={v => set('nombres', v)} editable={editing} />
-          <Input label="Correo electrónico" value={form.correo} onChangeText={v => set('correo', v)} editable={editing} keyboardType="email-address" autoCapitalize="none" />
-          <Input label="Cédula" value={user.cedula} onChangeText={() => {}} editable={false} />
-          <Input label="Teléfono" value={form.telefono} onChangeText={v => set('telefono', v)} editable={editing} keyboardType="phone-pad" />
-          <Input label="Teléfono SINPE" value={form.telefonoSinpe} onChangeText={v => set('telefonoSinpe', v)} editable={editing} keyboardType="phone-pad" />
-          <Input label="Alias" value={form.alias} onChangeText={v => set('alias', v)} editable={editing} autoCapitalize="none" />
-          <Input label="Dirección" value={form.direccion} onChangeText={v => set('direccion', v)} editable={editing} />
+        <Section title="Seguridad">
+          <SettingItem
+            icon={Lock}
+            title="Contraseña"
+            subtitle="Cambia tu clave de acceso"
+            onPress={() => navigation.navigate('Password')}
+          />
+          <View style={styles.divider} />
+          <SettingItem
+            icon={Shield}
+            title="Autenticación en 2 pasos"
+            subtitle="Añade una capa extra de seguridad"
+            onPress={() => navigation.navigate('TwoFA')}
+          />
+        </Section>
 
-          {editing && (
-            <Button
-              title={saving ? 'Guardando...' : '💾 Guardar Cambios'}
-              onPress={handleSave}
-              disabled={saving}
+        <Section title="Soporte y Comunidad">
+          <SettingItem
+            icon={Trophy} // Importa Trophy arriba
+            title="Reglamento y Pagos"
+            subtitle="Conoce cómo funciona el sistema de premios"
+            onPress={() => navigation.navigate('Rules')}
+          />
+          <View style={styles.divider} />
+          <SettingItem
+            icon={LifeBuoy}
+            title="Centro de Ayuda"
+            subtitle="Preguntas frecuentes y tutoriales"
+            onPress={() => navigation.navigate('HelpCenter')}
+          />
+          <View style={styles.divider} />
+          <SettingItem
+            icon={MessageSquare}
+            title="Contactar Soporte"
+            subtitle="Escríbenos si tienes un problema"
+            onPress={() => openURL('mailto:soporte@virtualagent.cr')}
+          />
+        </Section>
+
+        <Section title="Legal">
+          <SettingItem
+            icon={FileText}
+            title="Términos y Condiciones"
+            onPress={() => openURL('https://tusitio.com/terminos')}
+          />
+          <View style={styles.divider} />
+          <SettingItem
+            icon={Shield}
+            title="Política de Privacidad"
+            onPress={() => openURL('https://tusitio.com/privacidad')}
+          />
+        </Section>
+
+        <View style={[styles.section, { marginTop: 10, marginBottom: 10 }]}>
+          <View style={styles.card}>
+            <SettingItem
+              icon={LogOut}
+              title="Cerrar Sesión"
+              onPress={handleLogout}
+              isDestructive
+              hideChevron
             />
-          )}
+          </View>
+          <Text style={styles.versionText}>Virtual Agent v1.0.0 (Build 42)</Text>
         </View>
 
-        {/* Seguridad */}
-        <Card>
-          <Text style={styles.sectionLabel}>Seguridad y Cuenta</Text>
-          <TouchableOpacity style={styles.menuRow}>
-            <Text style={styles.menuLabel}>🔒 Cambiar contraseña</Text>
-            <Text style={{ color: Colors.textSecondary }}>›</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.menuRow} onPress={handleLogout}>
-            <Text style={[styles.menuLabel, { color: Colors.danger }]}>🚪 Cerrar Sesión</Text>
-            <Text style={{ color: Colors.textSecondary }}>›</Text>
-          </TouchableOpacity>
-        </Card>
       </ScrollView>
     </SafeAreaView>
   );
@@ -134,27 +215,45 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
-  scroll: { padding: 20, gap: 16, paddingBottom: 50 },
-  avatarSection: { alignItems: 'center', gap: 8, paddingVertical: 20 },
-  avatarCircle: {
-    width: 100, height: 100, borderRadius: 50,
+  scroll: { padding: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, gap: 16 },
+
+  // Nuevos estilos para el Avatar de Iniciales
+  initialsAvatar: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     backgroundColor: Colors.accentLight,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: Colors.accent
   },
-  userName: { fontSize: 22, fontWeight: '800', color: Colors.textPrimary },
-  roleBadge: { backgroundColor: Colors.accentLight, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
-  roleText: { color: Colors.accent, fontWeight: '700', fontSize: 13 },
-  sectionLabel: { fontSize: 13, fontWeight: '700', color: Colors.textSecondary, letterSpacing: 1, marginBottom: 12 },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  statItem: { width: '47%', alignItems: 'center', backgroundColor: Colors.bgInput, borderRadius: 12, padding: 14, gap: 4 },
-  statEmoji: { fontSize: 24 },
-  statValue: { fontSize: 18, fontWeight: '800', color: Colors.textPrimary },
-  statLabel: { fontSize: 11, color: Colors.textSecondary },
-  formCard: { backgroundColor: Colors.bgCard, borderRadius: 20, padding: 20, gap: 14 },
-  formHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  menuRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: Colors.border,
+  initialsText: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: Colors.accent,
+    letterSpacing: 1
   },
-  menuLabel: { fontSize: 15, color: Colors.textPrimary },
+
+  headerInfo: { flex: 1 },
+  name: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary },
+  email: { fontSize: 14, color: Colors.textSecondary, marginBottom: 6 },
+  badge: { alignSelf: 'flex-start', backgroundColor: Colors.accentLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  badgeText: { fontSize: 12, fontWeight: '700', color: Colors.accent },
+  statsCard: { flexDirection: 'row', backgroundColor: Colors.bgCard, borderRadius: 20, paddingVertical: 20, marginBottom: 24, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
+  statItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  statDivider: { width: 1, backgroundColor: Colors.border, marginVertical: 8 },
+  statValue: { fontSize: 22, fontWeight: '900', color: Colors.textPrimary },
+  statLabel: { fontSize: 12, color: Colors.textSecondary, marginTop: 4, fontWeight: '600' },
+  section: { marginBottom: 24 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: Colors.textSecondary, marginBottom: 10, marginLeft: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  card: { backgroundColor: Colors.bgCard, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: Colors.border },
+  settingItem: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 },
+  iconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.bgInput, alignItems: 'center', justifyContent: 'center' },
+  settingTextContent: { flex: 1 },
+  settingTitle: { fontSize: 16, fontWeight: '600', color: Colors.textPrimary },
+  settingSubtitle: { fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
+  divider: { height: 1, backgroundColor: Colors.border, marginLeft: 70 },
+  versionText: { textAlign: 'center', fontSize: 12, color: Colors.textSecondary, marginTop: 20, fontWeight: '500' }
 });

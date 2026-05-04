@@ -1,19 +1,40 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
-import { View, Text } from 'react-native';
+import { View, Text, Platform } from 'react-native';
 import DashboardScreen from '../screens/user/DashboardScreen';
 import CapturePropertyScreen from '../screens/user/CapturePropertyScreen';
 import ProfileScreen from '../screens/user/ProfileScreen';
 import CommunityScreen from '../screens/user/CommunityScreen';
 import { Colors } from '../theme/colors';
+import { Home, Camera, MessageSquare, User } from 'lucide-react-native';
 
 const Tab = createBottomTabNavigator();
 
-const TabIcon = ({ label, emoji, focused }: { label: string; emoji: string; focused: boolean }) => (
-  <View style={{ alignItems: 'center', paddingTop: 6 }}>
-    <Text style={{ fontSize: 20 }}>{emoji}</Text>
-    <Text style={{ fontSize: 10, color: focused ? Colors.accent : Colors.textSecondary, marginTop: 2 }}>
+interface TabIconProps {
+  IconComponent: any;
+  label: string;
+  focused: boolean;
+}
+
+const TabIcon = ({ IconComponent, label, focused }: TabIconProps) => (
+  <View style={{
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 70,
+    marginTop: 6,
+    gap: 4,
+  }}>
+    <IconComponent size={24} color={focused ? Colors.accent : Colors.textSecondary} />
+    <Text
+      numberOfLines={1}
+      ellipsizeMode="clip"
+      style={{
+        fontSize: 10,
+        fontWeight: focused ? '700' : '500',
+        color: focused ? Colors.accent : Colors.textSecondary,
+        textAlign: 'center',
+      }}
+    >
       {label}
     </Text>
   </View>
@@ -24,34 +45,52 @@ export default function UserNavigator() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        tabBarShowLabel: false,
+        sceneStyle: { backgroundColor: Colors.bg },
         tabBarStyle: {
           backgroundColor: Colors.bgCard,
-          borderTopColor: Colors.border,
-          height: 72,
-          paddingBottom: 10,
+          borderTopWidth: 0,
+          paddingTop: 15,
+          borderTopColor: 'transparent',
+          elevation: 0,
+          shadowColor: 'transparent',
+          shadowOpacity: 0,
+          shadowRadius: 0,
+          shadowOffset: { width: 0, height: 0 },
         },
-        tabBarShowLabel: false,
       }}
     >
       <Tab.Screen
         name="Dashboard"
         component={DashboardScreen}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="Inicio" emoji="🏠" focused={focused} /> }}
+        options={{
+          tabBarIcon: ({ focused }) =>
+            <TabIcon IconComponent={Home} label="Inicio" focused={focused} />,
+        }}
       />
       <Tab.Screen
         name="Capture"
         component={CapturePropertyScreen}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="Capturar" emoji="📷" focused={focused} /> }}
+        options={{
+          tabBarIcon: ({ focused }) =>
+            <TabIcon IconComponent={Camera} label="Capturar" focused={focused} />,
+        }}
       />
       <Tab.Screen
         name="Community"
         component={CommunityScreen}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="Comunidad" emoji="💬" focused={focused} /> }}
+        options={{
+          tabBarIcon: ({ focused }) =>
+            <TabIcon IconComponent={MessageSquare} label="Comunidad" focused={focused} />,
+        }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="Perfil" emoji="👤" focused={focused} /> }}
+        options={{
+          tabBarIcon: ({ focused }) =>
+            <TabIcon IconComponent={User} label="Perfil" focused={focused} />,
+        }}
       />
     </Tab.Navigator>
   );
