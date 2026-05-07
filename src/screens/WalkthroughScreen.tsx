@@ -118,8 +118,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
   topBar: {
     paddingHorizontal: 20,
+    paddingTop: 60, 
     justifyContent: 'center',
     alignItems: 'flex-end',
+    minHeight: 44, 
   },
   skip: { color: Colors.textSecondary, fontSize: 14, fontWeight: '600' },
   slide: {
