@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -111,7 +111,11 @@ export default function ProfileScreen() {
         {/* HEADER CON AVATAR DE INICIALES */}
         <View style={styles.header}>
           <View style={styles.initialsAvatar}>
-            <Text style={styles.initialsText}>{getInitials(user.nombres)}</Text>
+            {user.avatar ? (
+              <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.initialsText}>{getInitials(user.nombres)}</Text>
+            )}
           </View>
           <View style={styles.headerInfo}>
             <Text style={styles.name}>{user.nombres}</Text>
@@ -257,8 +261,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: Colors.accent
+    borderColor: Colors.accent,
+    overflow: 'hidden',
   },
+  avatarImage: { width: '100%', height: '100%' },
   initialsText: {
     fontSize: 28,
     fontWeight: '800',

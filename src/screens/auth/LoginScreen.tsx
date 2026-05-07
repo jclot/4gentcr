@@ -61,12 +61,15 @@ export default function LoginScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
         style={{ flex: 1 }}
       >
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets
         >
           {/* Header */}
           <View style={styles.header}>
@@ -147,7 +150,7 @@ export default function LoginScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
-  scroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
+  scroll: { flexGrow: 1, justifyContent: 'center', padding: 24, paddingBottom: 56 },
   header: { alignItems: 'center', marginBottom: 40 },
   iconContainer: {
     backgroundColor: Colors.accent,

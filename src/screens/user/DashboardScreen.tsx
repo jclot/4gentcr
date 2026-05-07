@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/useAppStore';
 import { Colors } from '../../theme/colors';
@@ -80,7 +80,11 @@ export default function DashboardScreen() {
             <Text style={styles.subgreeting}>Aquí está tu resumen</Text>
           </View>
           <View style={styles.avatarBadge}>
-            <Home size={24} color={Colors.accent} />
+            {user.avatar ? (
+              <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+            ) : (
+              <Home size={24} color={Colors.accent} />
+            )}
           </View>
         </View>
 
@@ -165,7 +169,8 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   greeting: { fontSize: 26, fontWeight: '800', color: Colors.textPrimary },
   subgreeting: { fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
-  avatarBadge: { width: 50, height: 50, borderRadius: 25, backgroundColor: Colors.accentLight, alignItems: 'center', justifyContent: 'center' },
+  avatarBadge: { width: 50, height: 50, borderRadius: 25, backgroundColor: Colors.accentLight, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatarImage: { width: '100%', height: '100%' },
   incomeCard: {
     backgroundColor: Colors.accent,
     borderRadius: 20,

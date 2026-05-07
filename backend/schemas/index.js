@@ -37,6 +37,7 @@ const updateUserSchema = z.object({
   ).optional(),
   telefonoSinpe: z.string().optional(),
   direccion: z.string().optional(),
+  avatar: z.string().optional(),
   totalIngresos: z.number().nonnegative().optional(),
   propiedadesCapturadas: z.number().int().nonnegative().optional(),
   propiedadesGestionadas: z.number().int().nonnegative().optional(),

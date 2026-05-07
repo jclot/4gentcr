@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  ActivityIndicator, Image, Platform,
+  ActivityIndicator, Image, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -569,10 +569,17 @@ export default function CapturePropertyScreen() {
 
     return (
       <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
         >
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            automaticallyAdjustKeyboardInsets
+          >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <ClipboardList size={28} color={Colors.textPrimary} />
             <Text style={styles.stepTitle}>Datos de la Propiedad</Text>
@@ -705,7 +712,8 @@ export default function CapturePropertyScreen() {
             onPress={() => setStep('ocr')}
             variant="ghost"
           />
-        </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }
@@ -741,7 +749,7 @@ export default function CapturePropertyScreen() {
 // ─────────────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
-  scroll: { padding: 20, gap: 16, paddingBottom: 50 },
+  scroll: { padding: 20, gap: 16, paddingBottom: 90 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 20, padding: 30 },
   permText: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, textAlign: 'center' },
 

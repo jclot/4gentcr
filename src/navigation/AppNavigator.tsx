@@ -2,13 +2,20 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppStore } from '../store/useAppStore';
 import { Colors } from '../theme/colors';
+import {
+  WALKTHROUGH_ENABLED,
+  WALKTHROUGH_FORCE_SHOW_IN_DEV,
+  WALKTHROUGH_STORAGE_KEY,
+} from '../config/walkthrough';
 
 import AuthNavigator from './AuthNavigator';
 import UserNavigator from './UserNavigator';
 import AdminNavigator from './AdminNavigator';
 import SplashScreen from '../screens/SplashScreen';
+import WalkthroughScreen from '../screens/WalkthroughScreen';
 
 import PersonalDataScreen from '../screens/profile/PersonalDataScreen';
 import CustomizationScreen from '../screens/profile/CustomizationScreen';
@@ -28,36 +35,70 @@ const AppTheme = {
 export default function AppNavigator() {
   const { initStore, getCurrentUser, isLoading } = useAppStore();
 
-  // Splash de arranque / auto-login
   const [splashDone, setSplashDone] = useState(false);
 
-  // Splash de transición login/registro → stack principal
-  // authSplashLoading: true = "sigue mostrando", false = "empezá a cerrar"
   const [showAuthSplash, setShowAuthSplash] = useState(false);
   const [authSplashLoading, setAuthSplashLoading] = useState(true);
+
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
+  const [walkthroughChecked, setWalkthroughChecked] = useState(false);
 
   const prevUserIdRef = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
     initStore();
+  }, [initStore]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadWalkthrough = async () => {
+      try {
+        const seen = await AsyncStorage.getItem(WALKTHROUGH_STORAGE_KEY);
+        const forceInDev = __DEV__ && WALKTHROUGH_FORCE_SHOW_IN_DEV;
+        const shouldShow = WALKTHROUGH_ENABLED && (forceInDev || seen !== '1');
+
+        if (isMounted) {
+          setShowWalkthrough(shouldShow);
+        }
+      } catch {
+        if (isMounted) {
+          setShowWalkthrough(false);
+        }
+      } finally {
+        if (isMounted) {
+          setWalkthroughChecked(true);
+        }
+      }
+    };
+
+    loadWalkthrough();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const user = getCurrentUser();
 
+  const handleWalkthroughFinish = async () => {
+    try {
+      await AsyncStorage.setItem(WALKTHROUGH_STORAGE_KEY, '1');
+    } finally {
+      setShowWalkthrough(false);
+    }
+  };
+
   useEffect(() => {
-    // undefined = primera ejecución (arranque), no disparar splash de transición
     if (prevUserIdRef.current === undefined) {
       prevUserIdRef.current = user?.id ?? null;
       return;
     }
 
-    // null → id: login o registro exitoso
     if (!prevUserIdRef.current && user?.id) {
-      setAuthSplashLoading(true);   // mostrar con contenido
+      setAuthSplashLoading(true);
       setShowAuthSplash(true);
 
-      // Dejar que el ícono y los puntos se vean un momento,
-      // luego disparar el fade-out
       const t = setTimeout(() => setAuthSplashLoading(false), 700);
       return () => clearTimeout(t);
     }
@@ -65,31 +106,35 @@ export default function AppNavigator() {
     prevUserIdRef.current = user?.id ?? null;
   }, [user?.id]);
 
+  const shouldShowWalkthrough = walkthroughChecked && splashDone && showWalkthrough;
+  const canRenderApp = splashDone && walkthroughChecked && !showWalkthrough;
+
   return (
     <View style={{ flex: 1, backgroundColor: Colors.bg }}>
-      <NavigationContainer theme={AppTheme}>
-        {!user ? (
-          <AuthNavigator />
-        ) : (
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            {user.role === 'admin' ? (
-              <Stack.Screen name="AdminTabs" component={AdminNavigator} />
-            ) : (
-              <Stack.Screen name="UserTabs" component={UserNavigator} />
-            )}
-            <Stack.Screen name="PersonalData" component={PersonalDataScreen} />
-            <Stack.Screen name="Customization" component={CustomizationScreen} />
-            <Stack.Screen name="Notifications" component={NotificationsScreen} />
-            <Stack.Screen name="Password" component={PasswordScreen} />
-            <Stack.Screen name="TwoFA" component={TwoFAScreen} />
-            <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
-            <Stack.Screen name="Rules" component={RulesScreen} />
-          </Stack.Navigator>
-        )}
-      </NavigationContainer>
+      {canRenderApp && (
+        <NavigationContainer theme={AppTheme}>
+          {!user ? (
+            <AuthNavigator />
+          ) : (
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              {user.role === 'admin' ? (
+                <Stack.Screen name="AdminTabs" component={AdminNavigator} />
+              ) : (
+                <Stack.Screen name="UserTabs" component={UserNavigator} />
+              )}
+              <Stack.Screen name="PersonalData" component={PersonalDataScreen} />
+              <Stack.Screen name="Customization" component={CustomizationScreen} />
+              <Stack.Screen name="Notifications" component={NotificationsScreen} />
+              <Stack.Screen name="Password" component={PasswordScreen} />
+              <Stack.Screen name="TwoFA" component={TwoFAScreen} />
+              <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
+              <Stack.Screen name="Rules" component={RulesScreen} />
+            </Stack.Navigator>
+          )}
+        </NavigationContainer>
+      )}
 
-      {/* Splash de transición login/registro → muestra ícono y puntos, luego fade-out */}
-      {showAuthSplash && (
+      {canRenderApp && showAuthSplash && (
         <SplashScreen
           loading={authSplashLoading}
           onHidden={() => setShowAuthSplash(false)}
@@ -97,12 +142,15 @@ export default function AppNavigator() {
         />
       )}
 
-      {/* Splash de arranque — cubre initStore y el posible auto-login */}
       {!splashDone && (
         <SplashScreen
           loading={isLoading}
           onHidden={() => setSplashDone(true)}
         />
+      )}
+
+      {shouldShowWalkthrough && (
+        <WalkthroughScreen onFinish={handleWalkthroughFinish} />
       )}
     </View>
   );

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform,
+  View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/useAppStore';
@@ -18,6 +18,8 @@ export default function CommunityScreen() {
   const { db, addPost, likePost, getCurrentUser } = useAppStore();
   const user = getCurrentUser()!;
   const [newMessage, setNewMessage] = useState('');
+  const getAvatarByUserId = (userId: string) =>
+    db.users.find((u) => u.id === userId)?.avatar || '';
 
   const handlePost = () => {
     if (!newMessage.trim()) return;
@@ -37,11 +39,15 @@ export default function CommunityScreen() {
         </View>
 
         <ScrollView contentContainerStyle={styles.feed} showsVerticalScrollIndicator={false}>
-          {db.community.map(post => (
+          {db.community.map(post => {
+            const avatarUri = getAvatarByUserId(post.userId) || post.userAvatar || '';
+            return (
             <View key={post.id} style={styles.postCard}>
               <View style={styles.postHeader}>
                 <View style={styles.postAvatar}>
-                  {post.userId === 'admin1' ? (
+                  {avatarUri ? (
+                    <Image source={{ uri: avatarUri }} style={styles.postAvatarImage} />
+                  ) : post.userId === 'admin1' ? (
                     <ShieldCheck size={20} color={Colors.accent} />
                   ) : (
                     <UserCircle size={20} color={Colors.accent} />
@@ -61,7 +67,7 @@ export default function CommunityScreen() {
                 <Text style={styles.likeText}>{post.likes}</Text>
               </TouchableOpacity>
             </View>
-          ))}
+          )})}
         </ScrollView>
 
         {/* Composer */}
@@ -100,7 +106,9 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: Colors.accentLight,
     alignItems: 'center', justifyContent: 'center',
+    overflow: 'hidden',
   },
+  postAvatarImage: { width: '100%', height: '100%' },
   postName: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary },
   postDate: { fontSize: 11, color: Colors.textSecondary },
   postText: { fontSize: 14, color: Colors.textPrimary, lineHeight: 22 },

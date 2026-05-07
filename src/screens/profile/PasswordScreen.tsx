@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
@@ -84,7 +84,17 @@ export default function PasswordScreen({ navigation }: any) {
                 <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+            >
+                <ScrollView
+                    contentContainerStyle={styles.scroll}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="on-drag"
+                    automaticallyAdjustKeyboardInsets
+                >
                 <View style={styles.heroBox}>
                     <ShieldAlert size={56} color={Colors.accent} />
                     <Text style={styles.heroTitle}>Protege tu cuenta</Text>
@@ -138,7 +148,8 @@ export default function PasswordScreen({ navigation }: any) {
                         disabled={loading || strength < 2 || !passwordsMatch}
                     />
                 </View>
-            </ScrollView>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
@@ -148,7 +159,7 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: Colors.border },
     backBtn: { width: 40, height: 40, justifyContent: 'center' },
     title: { fontSize: 18, fontWeight: '800', color: Colors.textPrimary },
-    scroll: { padding: 20, paddingBottom: 40 },
+    scroll: { padding: 20, paddingBottom: 80 },
     heroBox: { alignItems: 'center', backgroundColor: Colors.accentLight, padding: 30, borderRadius: 24, marginBottom: 24 },
     heroTitle: { fontSize: 20, fontWeight: '800', color: Colors.textPrimary, marginTop: 16, marginBottom: 8 },
     heroSub: { fontSize: 13, color: Colors.textSecondary, textAlign: 'center', lineHeight: 20 },

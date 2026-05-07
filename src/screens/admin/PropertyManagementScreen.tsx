@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, Share, ScrollView, Linking, Platform, TextInput
+  View, Text, StyleSheet, FlatList, TouchableOpacity, Share, ScrollView, Linking, Platform, TextInput, Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -12,7 +12,7 @@ import { Property, PropertyStatus } from '../../data/mockData';
 import { useModalStore } from '../../store/useModalStore';
 import {
   Globe, Trash2, Phone, CircleDollarSign, CheckCircle,
-  AlertTriangle, Ban, MapPin, Map, Car, Upload, Circle, Search, X
+  AlertTriangle, Ban, MapPin, Map, Car, Upload, Circle, Search, X, UserCircle
 } from 'lucide-react-native';
 
 const STATUS_CONFIG: Record<PropertyStatus, { color: string; short: string }> = {
@@ -31,6 +31,7 @@ export default function PropertyManagementScreen() {
   const getCapturedByAlias = (userId: string) => {
     return db.users.find(u => u.id === userId)?.alias ?? '?';
   };
+  const getCapturedByUser = (userId: string) => db.users.find(u => u.id === userId);
 
   // Filtrado múltiple (Estado y Búsqueda)
   const filtered = db.properties.filter(p => {
@@ -116,7 +117,16 @@ export default function PropertyManagementScreen() {
       <View style={styles.propHeader}>
         <View style={{ flex: 1 }}>
           <Text style={styles.propTitle}>{prop.tipo} · {prop.canton}</Text>
-          <Text style={styles.propSub}>Scout: @{getCapturedByAlias(prop.capturedBy)} · {formatDate(prop.createdAt)}</Text>
+          <View style={styles.scoutRow}>
+            <View style={styles.scoutAvatar}>
+              {getCapturedByUser(prop.capturedBy)?.avatar ? (
+                <Image source={{ uri: getCapturedByUser(prop.capturedBy)!.avatar }} style={styles.scoutAvatarImage} />
+              ) : (
+                <UserCircle size={16} color={Colors.accent} />
+              )}
+            </View>
+            <Text style={styles.propSub}>@{getCapturedByAlias(prop.capturedBy)} | {formatDate(prop.createdAt)}</Text>
+          </View>
         </View>
         <TouchableOpacity onPress={() => handleDelete(prop)} style={styles.deleteBtn}>
           <Trash2 size={20} color={Colors.textSecondary} />
@@ -392,6 +402,17 @@ const styles = StyleSheet.create({
   propCard: { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, gap: 12 },
   propHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   propTitle: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary },
+  scoutRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  scoutAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.accentLight,
+  },
+  scoutAvatarImage: { width: '100%', height: '100%' },
   propSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
   deleteBtn: { padding: 4 },
   propDetails: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

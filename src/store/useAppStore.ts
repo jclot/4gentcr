@@ -226,6 +226,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
       db: {
         ...s.db,
         users: s.db.users.map((u) => (u.id === userId ? { ...u, ...updated } : u)),
+        community: s.db.community.map((c) =>
+          c.userId === userId
+            ? {
+                ...c,
+                userAvatar: updated.avatar ?? c.userAvatar,
+                userName: updated.nombres
+                  ? updated.nombres.split(' ').slice(0, 2).join(' ')
+                  : c.userName,
+              }
+            : c,
+        ),
       },
     }));
   },

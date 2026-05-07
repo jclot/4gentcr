@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/useAppStore';
 import { Colors } from '../../theme/colors';
@@ -128,10 +128,17 @@ export default function RegisterScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bg }}>
-      <ScrollView
-        contentContainerStyle={{ padding: 24, gap: 16 }}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
       >
+        <ScrollView
+          contentContainerStyle={{ padding: 24, gap: 16, paddingBottom: 80 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets
+        >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
           <UserPlus size={36} color={Colors.textPrimary} />
           <View>
@@ -182,7 +189,8 @@ export default function RegisterScreen({ navigation }: any) {
           onPress={() => navigation.goBack()}
           variant="ghost"
         />
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

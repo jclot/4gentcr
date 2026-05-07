@@ -12,7 +12,7 @@ const updateUser = async (req, res) => {
     }
 
     const {
-      nombres, alias, telefono, telefonoSinpe, direccion,
+      nombres, alias, telefono, telefonoSinpe, direccion, avatar,
       totalIngresos, propiedadesCapturadas, propiedadesGestionadas, propiedadesVendidas,
     } = req.body;
 
@@ -23,6 +23,7 @@ const updateUser = async (req, res) => {
          telefono            = COALESCE(?, telefono),
          telefonoSinpe       = COALESCE(?, telefonoSinpe),
          direccion           = COALESCE(?, direccion),
+         avatar              = COALESCE(?, avatar),
          totalIngresos       = COALESCE(?, totalIngresos),
          propiedadesCapturadas   = COALESCE(?, propiedadesCapturadas),
          propiedadesGestionadas  = COALESCE(?, propiedadesGestionadas),
@@ -30,7 +31,7 @@ const updateUser = async (req, res) => {
        WHERE id = ?`,
       [
         nombres ?? null, alias ?? null, telefono ?? null, telefonoSinpe ?? null,
-        direccion ?? null, totalIngresos ?? null, propiedadesCapturadas ?? null,
+        direccion ?? null, avatar ?? null, totalIngresos ?? null, propiedadesCapturadas ?? null,
         propiedadesGestionadas ?? null, propiedadesVendidas ?? null, id,
       ],
     );

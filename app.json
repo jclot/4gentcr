@@ -5,14 +5,42 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "splash": { "backgroundColor": "#0A0A0F" },
+    "splash": {
+      "backgroundColor": "#0A0A0F"
+    },
     "plugins": [
-      ["expo-camera", { "cameraPermission": "Necesitamos acceso a la cámara para fotografiar carteles." }],
-      ["expo-location", { "locationAlwaysAndWhenInUsePermission": "Necesitamos tu ubicación para registrar propiedades." }],
-      ["expo-media-library", { "photosPermission": "Acceso a galería para adjuntar fotos." }]
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Necesitamos acceso a la cámara para fotografiar carteles."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Necesitamos tu ubicación para registrar propiedades."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Acceso a galería para adjuntar fotos."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Necesitamos acceso a tus fotos para tu perfil.",
+          "cameraPermission": "Necesitamos acceso a la camara para tomar tu foto de perfil."
+        }
+      ]
     ],
     "android": {
-      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#0A0A0F" },
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0A0F"
+      },
+      "softwareKeyboardLayoutMode": "resize",
       "package": "com.virtualagent.app"
     },
     "ios": {
