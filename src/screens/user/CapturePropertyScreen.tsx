@@ -242,7 +242,6 @@ export default function CapturePropertyScreen() {
       distrito: gpsData.distrito,
       descripcion: form.descripcion.trim(),
       precioAproximado: precio,
-      esDuplicada: false,
       esDeAgencia: form.esDeAgencia,
       exclusividad: form.exclusividad,
       notas: '',

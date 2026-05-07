@@ -10,11 +10,11 @@ import { Colors } from '../../theme/colors';
 import { formatCurrency } from '../../utils/locationUtils';
 import {
   User, Bell, Shield, LifeBuoy, MessageSquare,
-  FileText, LogOut, ChevronRight, Palette, Lock, MapPin, Trophy
+  FileText, LogOut, ChevronRight, Palette, Lock, MapPin, Trophy, Trash2
 } from 'lucide-react-native';
 
 export default function ProfileScreen() {
-  const { getCurrentUser, logout, db } = useAppStore();
+  const { getCurrentUser, logout, deleteUser, db } = useAppStore();
   const { confirm } = useModalStore();
   const navigation = useNavigation<any>();
   const user = getCurrentUser();
@@ -42,6 +42,28 @@ export default function ProfileScreen() {
       cancelLabel: 'Cancelar',
       variant: 'danger',
       onConfirm: () => logout(),
+    });
+  };
+
+  const handleDeleteAccount = () => {
+    confirm({
+      title: 'Eliminar cuenta',
+      message: 'Se eliminará tu cuenta y todo tu historial asociado. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      cancelLabel: 'Cancelar',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await deleteUser(user.id);
+        } catch (err: any) {
+          confirm({
+            title: 'No se pudo eliminar',
+            message: err?.message ?? 'Intenta de nuevo en unos minutos.',
+            confirmLabel: 'OK',
+            onConfirm: () => { },
+          });
+        }
+      },
     });
   };
 
@@ -195,13 +217,21 @@ export default function ProfileScreen() {
           />
         </Section>
 
-        <View style={[styles.section, { marginTop: 10, marginBottom: 10 }]}>
-          <View style={styles.card}>
-            <SettingItem
-              icon={LogOut}
-              title="Cerrar Sesión"
-              onPress={handleLogout}
-              isDestructive
+	        <View style={[styles.section, { marginTop: 10, marginBottom: 10 }]}>
+	          <View style={styles.card}>
+	            <SettingItem
+	              icon={Trash2}
+	              title="Eliminar cuenta"
+	              subtitle="Borra tu usuario y datos asociados"
+	              onPress={handleDeleteAccount}
+	              isDestructive
+	            />
+	            <View style={styles.divider} />
+	            <SettingItem
+	              icon={LogOut}
+	              title="Cerrar Sesión"
+	              onPress={handleLogout}
+	              isDestructive
               hideChevron
             />
           </View>

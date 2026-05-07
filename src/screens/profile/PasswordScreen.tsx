@@ -2,12 +2,18 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors';
-import { ChevronLeft, ShieldAlert, CheckCircle2 } from 'lucide-react-native';
+import { useAppStore } from '../../store/useAppStore';
+import { useModalStore } from '../../store/useModalStore';
+import { ChevronLeft, ShieldAlert } from 'lucide-react-native';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 
 export default function PasswordScreen({ navigation }: any) {
+    const { getCurrentUser, changePassword } = useAppStore();
+    const { confirm } = useModalStore();
+    const user = getCurrentUser();
     const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
+    const [loading, setLoading] = useState(false);
 
     // Lógica simple de fortaleza visual
     const getStrength = (pass: string) => {
@@ -20,6 +26,53 @@ export default function PasswordScreen({ navigation }: any) {
     const strength = getStrength(passwords.new);
     const strengthColors = [Colors.border, Colors.danger, Colors.warning, Colors.success];
     const strengthLabels = ['Ingresa tu nueva clave', 'Débil', 'Aceptable', 'Fuerte'];
+    
+    const passwordsMatch = passwords.new === passwords.confirm;
+
+    const handleUpdatePassword = async () => {
+        if (!user) return;
+
+        if (!passwords.current || !passwords.new || !passwords.confirm) {
+            confirm({
+                title: 'Campos incompletos',
+                message: 'Debes completar todos los campos.',
+                confirmLabel: 'OK',
+                onConfirm: () => { },
+            });
+            return;
+        }
+
+        if (!passwordsMatch) {
+            confirm({
+                title: 'Validación',
+                message: 'Las contraseñas no coinciden.',
+                confirmLabel: 'OK',
+                onConfirm: () => { },
+            });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await changePassword(user.id, passwords.current, passwords.new);
+            setLoading(false);
+            setPasswords({ current: '', new: '', confirm: '' });
+            confirm({
+                title: 'Contraseña actualizada',
+                message: 'Tu contraseña se cambió correctamente.',
+                confirmLabel: 'OK',
+                onConfirm: () => navigation.goBack(),
+            });
+        } catch (err: any) {
+            setLoading(false);
+            confirm({
+                title: 'No se pudo actualizar',
+                message: err?.message ?? 'Intenta de nuevo en unos minutos.',
+                confirmLabel: 'OK',
+                onConfirm: () => { },
+            });
+        }
+    };
 
     return (
         <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
@@ -44,7 +97,7 @@ export default function PasswordScreen({ navigation }: any) {
                         secureTextEntry
                         value={passwords.current}
                         onChangeText={(v) => setPasswords({ ...passwords, current: v })}
-                        placeholder="••••••••"
+                        placeholder="********"
                     />
                     <View style={styles.divider} />
 
@@ -79,7 +132,11 @@ export default function PasswordScreen({ navigation }: any) {
                 </View>
 
                 <View style={{ marginTop: 20 }}>
-                    <Button title="Actualizar Contraseña" onPress={() => navigation.goBack()} disabled={strength < 2 || passwords.new !== passwords.confirm} />
+                    <Button
+                        title={loading ? 'Actualizando...' : 'Actualizar Contraseña'}
+                        onPress={handleUpdatePassword}
+                        disabled={loading || strength < 2 || !passwordsMatch}
+                    />
                 </View>
             </ScrollView>
         </SafeAreaView>

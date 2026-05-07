@@ -43,6 +43,11 @@ const updateUserSchema = z.object({
   propiedadesVendidas: z.number().int().nonnegative().optional(),
 });
 
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'La contraseña actual es obligatoria'),
+  newPassword: z.string().min(6, 'La nueva contraseña debe tener al menos 6 caracteres'),
+});
+
 // Properties 
 const propertyStatusEnum = z.enum([
   'nueva',
@@ -102,6 +107,7 @@ module.exports = {
   loginSchema,
   registerSchema,
   updateUserSchema,
+  changePasswordSchema,
   addPropertySchema,
   updatePropertyStatusSchema,
   updatePropertySchema,

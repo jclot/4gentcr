@@ -114,6 +114,19 @@ export const apiUpdateUser = (userId: string, data: any) =>
     body: JSON.stringify(data),
   });
 
+export const apiChangePassword = (
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+) =>
+  apiFetch<{ ok: boolean; message: string }>(`/users/${userId}/password`, {
+    method: 'PUT',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+
+export const apiDeleteUser = (userId: string) =>
+  apiFetch<{ ok: boolean }>(`/users/${userId}`, { method: 'DELETE' });
+
 // PROPERTIES (paginado)
 export interface PropertiesPageResponse {
   data: any[];

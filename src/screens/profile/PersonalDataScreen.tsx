@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
+import { useModalStore } from '../../store/useModalStore';
 import { ChevronLeft, Camera, Lock, Info } from 'lucide-react-native';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 
 export default function PersonalDataScreen({ navigation }: any) {
-    const { getCurrentUser, updateUser } = useAppStore(); // Asumiendo que tienes una función para actualizar en tu store
+    const { getCurrentUser, updateUser } = useAppStore();
+    const { confirm } = useModalStore();
     const user = getCurrentUser();
 
     const [form, setForm] = useState({
@@ -21,13 +23,45 @@ export default function PersonalDataScreen({ navigation }: any) {
 
     const [loading, setLoading] = useState(false);
 
-    const handleSave = () => {
+    const handleSave = async () => {
+        if (!user) return;
+
+        if (form.nombres.trim().length < 2 || form.alias.trim().length < 2) {
+            confirm({
+                title: 'Datos inválidos',
+                message: 'Nombre y alias deben tener al menos 2 caracteres.',
+                confirmLabel: 'OK',
+                onConfirm: () => { },
+            });
+            return;
+        }
+
         setLoading(true);
-        // Aquí simularías la actualización en tu base de datos/store
-        setTimeout(() => {
+        try {
+            await updateUser(user.id, {
+                nombres: form.nombres.trim(),
+                alias: form.alias.trim(),
+                telefono: form.telefono.trim(),
+                telefonoSinpe: form.telefonoSinpe.trim(),
+                direccion: form.direccion.trim(),
+            });
+
             setLoading(false);
-            navigation.goBack();
-        }, 800);
+            confirm({
+                title: 'Datos actualizados',
+                message: 'Tus cambios se guardaron correctamente.',
+                confirmLabel: 'OK',
+                onConfirm: () => navigation.goBack(),
+            });
+        } catch (err: any) {
+            setLoading(false);
+            confirm({
+                title: 'No se pudo guardar',
+                message: err?.message ?? 'Intenta de nuevo en unos minutos.',
+                confirmLabel: 'OK',
+                onConfirm: () => { },
+            });
+        }
     };
 
     if (!user) return null;
@@ -56,7 +90,7 @@ export default function PersonalDataScreen({ navigation }: any) {
                     <Text style={styles.avatarHint}>Toca para cambiar tu foto</Text>
                 </View>
 
-                {/* TARJETA 1: PERFIL PÚBLICO */}
+                {/* TARJETA 1: PERFIL PUBLICO */}
                 <Text style={styles.sectionTitle}>Perfil Público</Text>
                 <View style={styles.card}>
                     <Input
@@ -120,7 +154,7 @@ export default function PersonalDataScreen({ navigation }: any) {
                     </View>
                 </View>
 
-                {/* BOTÓN DE GUARDAR */}
+                {/* BOTON DE GUARDAR */}
                 <View style={styles.footer}>
                     <Button
                         title={loading ? "Guardando..." : "Guardar Cambios"}

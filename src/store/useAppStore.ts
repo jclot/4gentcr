@@ -11,6 +11,8 @@ import {
   apiLogin,
   apiRegister,
   apiUpdateUser,
+  apiChangePassword,
+  apiDeleteUser,
   apiAddProperty,
   apiUpdatePropertyStatus,
   apiUpdateProperty,
@@ -56,6 +58,8 @@ interface AppStore extends PaginationState {
 
   // ── Users CRUD ──
   updateUser: (userId: string, data: Partial<User>) => Promise<void>;
+  changePassword: (userId: string, currentPassword: string, newPassword: string) => Promise<void>;
+  deleteUser: (userId: string) => Promise<void>;
 
   // ── Properties CRUD ──
   getPropertiesByUser: (userId: string) => Property[];
@@ -222,6 +226,35 @@ export const useAppStore = create<AppStore>((set, get) => ({
       db: {
         ...s.db,
         users: s.db.users.map((u) => (u.id === userId ? { ...u, ...updated } : u)),
+      },
+    }));
+  },
+
+  changePassword: async (userId, currentPassword, newPassword) => {
+    await apiChangePassword(userId, currentPassword, newPassword);
+  },
+
+  deleteUser: async (userId) => {
+    const { db } = get();
+    await apiDeleteUser(userId);
+
+    if (db.currentUserId === userId) {
+      await clearToken();
+      set({
+        db: EMPTY_DB,
+        isLoading: false,
+        isLoadingMore: false,
+        propertiesMeta: null,
+      });
+      return;
+    }
+
+    set((s) => ({
+      db: {
+        ...s.db,
+        users: s.db.users.filter((u) => u.id !== userId),
+        properties: s.db.properties.filter((p) => p.capturedBy !== userId),
+        community: s.db.community.filter((c) => c.userId !== userId),
       },
     }));
   },
