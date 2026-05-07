@@ -5,10 +5,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/useAppStore';
-import { useModalStore } from '../../store/useModalStore';
 import { Colors } from '../../theme/colors';
 import { isValidEmail } from '../../utils/locationUtils';
-import { Home } from 'lucide-react-native';
+import { Home, AlertCircle } from 'lucide-react-native';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 
@@ -16,44 +15,47 @@ export default function LoginScreen({ navigation }: any) {
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ correo?: string; password?: string }>({});
+  const [generalError, setGeneralError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const { login } = useAppStore();
-  const { confirm } = useModalStore();
 
   const validate = (): boolean => {
-    const newErrors: typeof errors = {};
+    const e: typeof errors = {};
     if (!correo.trim()) {
-      newErrors.correo = 'El correo es obligatorio.';
+      e.correo = 'El correo es obligatorio.';
     } else if (!isValidEmail(correo)) {
-      newErrors.correo = 'Ingresá un correo válido (ej: nombre@dominio.com).';
+      e.correo = 'Ingresá un correo válido (ej: nombre@dominio.com).';
     }
     if (!password) {
-      newErrors.password = 'La contraseña es obligatoria.';
+      e.password = 'La contraseña es obligatoria.';
+    } else if (password.length < 6) {
+      e.password = 'La contraseña debe tener al menos 6 caracteres.';
     }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!validate()) return;
+    setGeneralError(null);
     setLoading(true);
-    setTimeout(() => {
-      const user = login(correo.trim(), password);
-      setLoading(false);
-      if (!user) {
-        confirm({
-          title: 'Credenciales incorrectas',
-          message:
-            'No encontramos una cuenta con ese correo y contraseña.\n\n' +
-            'Prueba:\ncarlos@virtualagent.cr / 123456\nadmin@virtualagent.cr / admin123',
-          confirmLabel: 'Entendido',
-          cancelLabel: 'Registrarme',
-          onConfirm: () => { },
-          onCancel: () => navigation.navigate('Register'),
-        });
+    try {
+      await login(correo.trim().toLowerCase(), password);
+      // El AppNavigator detecta el cambio en currentUserId y muestra
+      // el AuthTransitionOverlay automáticamente. No hay que hacer nada aquí.
+    } catch (err: any) {
+      const msg: string = err?.message ?? '';
+      if (msg === 'UNAUTHORIZED' || msg.toLowerCase().includes('credenciales')) {
+        setGeneralError('Correo o contraseña incorrectos. Verificá tus datos.');
+      } else if (msg.includes('Sin conexión') || msg.includes('Network')) {
+        setGeneralError('No se pudo conectar al servidor. Verificá tu red.');
+      } else {
+        setGeneralError(msg || 'Ocurrió un error inesperado. Intentá de nuevo.');
       }
-    }, 600);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -62,32 +64,53 @@ export default function LoginScreen({ navigation }: any) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header */}
           <View style={styles.header}>
             <View style={styles.iconContainer}>
-              <Home size={48} color={Colors.white} />
+              <Home size={48} color="#FFFFFF" />
             </View>
             <Text style={styles.title}>Virtual Agent</Text>
             <Text style={styles.subtitle}>El Uber de Bienes Raíces</Text>
           </View>
 
+          {/* Formulario */}
           <View style={styles.form}>
             <Text style={styles.formTitle}>Iniciar Sesión</Text>
+
+            {generalError && (
+              <View style={styles.errorBanner}>
+                <AlertCircle size={16} color="#EF4444" />
+                <Text style={styles.errorBannerText}>{generalError}</Text>
+              </View>
+            )}
 
             <Input
               label="Correo electrónico"
               value={correo}
-              onChangeText={v => { setCorreo(v); setErrors(e => ({ ...e, correo: undefined })); }}
+              onChangeText={(v: string) => {
+                setCorreo(v);
+                setErrors(e => ({ ...e, correo: undefined }));
+                setGeneralError(null);
+              }}
               placeholder="correo@ejemplo.com"
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
               error={errors.correo}
             />
+
             <Input
               label="Contraseña"
               value={password}
-              onChangeText={v => { setPassword(v); setErrors(e => ({ ...e, password: undefined })); }}
+              onChangeText={(v: string) => {
+                setPassword(v);
+                setErrors(e => ({ ...e, password: undefined }));
+                setGeneralError(null);
+              }}
               placeholder="••••••••"
               secureTextEntry
               error={errors.password}
@@ -105,6 +128,7 @@ export default function LoginScreen({ navigation }: any) {
               onPress={handleLogin}
               disabled={loading}
             />
+
             <TouchableOpacity
               onPress={() => navigation.navigate('Register')}
               style={styles.linkBtn}
@@ -127,19 +151,21 @@ const styles = StyleSheet.create({
   header: { alignItems: 'center', marginBottom: 40 },
   iconContainer: {
     backgroundColor: Colors.accent,
-    padding: 20,
-    borderRadius: 24,
-    marginBottom: 16,
+    padding: 20, borderRadius: 24, marginBottom: 16,
     shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowOpacity: 0.4, shadowRadius: 16, elevation: 10,
   },
   title: { fontSize: 32, fontWeight: '800', color: Colors.textPrimary, letterSpacing: 1 },
   subtitle: { fontSize: 14, color: Colors.accent, marginTop: 4 },
   form: { backgroundColor: Colors.bgCard, borderRadius: 20, padding: 24, gap: 16 },
   formTitle: { fontSize: 22, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
+  errorBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#FEE2E2', borderRadius: 10, padding: 12,
+    borderLeftWidth: 3, borderLeftColor: '#EF4444',
+  },
+  errorBannerText: { flex: 1, fontSize: 13, color: '#B91C1C', lineHeight: 18 },
   hint: { backgroundColor: Colors.accentLight, borderRadius: 10, padding: 12 },
   hintText: { fontSize: 12, color: Colors.accent, lineHeight: 20 },
   linkBtn: { alignItems: 'center', marginTop: 8 },

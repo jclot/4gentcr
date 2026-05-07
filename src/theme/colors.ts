@@ -9,6 +9,7 @@ export const Colors = {
   warning: '#FFB800',
   warningLight: 'rgba(255,184,0,0.15)',
   danger: '#FF647C',
+  error: '#FF647C',
   dangerLight: 'rgba(255,100,124,0.15)',
   textPrimary: '#F0F0F5',
   textSecondary: '#8A8A9A',

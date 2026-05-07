@@ -726,7 +726,12 @@ export default function CapturePropertyScreen() {
           <Text style={styles.successIncomeLabel}>Ingreso acreditado</Text>
           <Text style={styles.successIncomeVal}>{formatCurrency(ingresoFinal)}</Text>
         </View>
-        <Button title="Capturar otra propiedad" onPress={resetFlow} />
+        <View style={styles.successButton}>
+          <Button
+            title="Capturar otra propiedad"
+            onPress={resetFlow}
+          />
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -959,7 +964,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    padding: 37,
     gap: 16,
   },
   successTitle: { fontSize: 34, fontWeight: '900', color: Colors.textPrimary },
@@ -974,4 +979,5 @@ const styles = StyleSheet.create({
   },
   successIncomeLabel: { fontSize: 13, color: Colors.textSecondary },
   successIncomeVal: { fontSize: 38, fontWeight: '900', color: Colors.success },
+  successButton: { width: 320 },
 });

@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/useAppStore';
-import { useModalStore } from '../../store/useModalStore';
 import { Colors } from '../../theme/colors';
 import { isValidEmail } from '../../utils/locationUtils';
-import { UserPlus } from 'lucide-react-native';
+import { UserPlus, AlertCircle } from 'lucide-react-native';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 
-type FormKey = 'nombres' | 'correo' | 'cedula' | 'telefono' | 'telefonoSinpe' | 'alias' | 'password' | 'passwordConfirm' | 'direccion';
+type FormKey =
+  | 'nombres' | 'correo' | 'cedula' | 'telefono'
+  | 'telefonoSinpe' | 'alias' | 'password' | 'passwordConfirm' | 'direccion';
 
 const INITIAL: Record<FormKey, string> = {
   nombres: '', correo: '', cedula: '', telefono: '',
@@ -19,40 +20,62 @@ const INITIAL: Record<FormKey, string> = {
 export default function RegisterScreen({ navigation }: any) {
   const [form, setForm] = useState(INITIAL);
   const [errors, setErrors] = useState<Partial<Record<FormKey, string>>>({});
+  const [generalError, setGeneralError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const { register } = useAppStore();
-  const { confirm } = useModalStore();
 
   const setField = (key: FormKey, value: string) => {
     setForm(f => ({ ...f, [key]: value }));
     setErrors(e => ({ ...e, [key]: undefined }));
+    setGeneralError(null);
   };
 
   const validate = (): boolean => {
     const e: typeof errors = {};
-    if (!form.nombres.trim()) e.nombres = 'El nombre es obligatorio.';
+    if (!form.nombres.trim()) {
+      e.nombres = 'El nombre es obligatorio.';
+    } else if (form.nombres.trim().length < 2) {
+      e.nombres = 'El nombre debe tener al menos 2 caracteres.';
+    }
     if (!form.correo.trim()) {
       e.correo = 'El correo es obligatorio.';
     } else if (!isValidEmail(form.correo)) {
       e.correo = 'Ingresá un correo válido (ej: nombre@dominio.com).';
     }
-    if (!form.cedula.trim()) e.cedula = 'La cédula es obligatoria.';
-    if (!form.telefono.trim()) e.telefono = 'El teléfono es obligatorio.';
-    if (!form.alias.trim()) e.alias = 'El alias es obligatorio.';
-    if (form.password.length < 6) e.password = 'Mínimo 6 caracteres.';
-    if (form.password !== form.passwordConfirm) {
+    if (!form.cedula.trim()) {
+      e.cedula = 'La cédula es obligatoria.';
+    } else if (form.cedula.replace(/\D/g, '').length < 9) {
+      e.cedula = 'La cédula debe tener al menos 9 dígitos.';
+    }
+    if (!form.telefono.trim()) {
+      e.telefono = 'El teléfono es obligatorio.';
+    } else if (form.telefono.replace(/\D/g, '').length < 8) {
+      e.telefono = 'El teléfono debe tener al menos 8 dígitos.';
+    }
+    if (!form.alias.trim()) {
+      e.alias = 'El alias es obligatorio.';
+    } else if (form.alias.trim().length < 2) {
+      e.alias = 'El alias debe tener al menos 2 caracteres.';
+    }
+    if (form.password.length < 6) {
+      e.password = 'La contraseña debe tener al menos 6 caracteres.';
+    }
+    if (!form.passwordConfirm) {
+      e.passwordConfirm = 'Confirmá tu contraseña.';
+    } else if (form.password !== form.passwordConfirm) {
       e.passwordConfirm = 'Las contraseñas no coinciden.';
     }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!validate()) return;
+    setGeneralError(null);
     setLoading(true);
-    setTimeout(() => {
-      register({
+    try {
+      await register({
         nombres: form.nombres.trim(),
         correo: form.correo.trim().toLowerCase(),
         cedula: form.cedula.trim(),
@@ -62,18 +85,43 @@ export default function RegisterScreen({ navigation }: any) {
         password: form.password,
         direccion: form.direccion.trim(),
         role: 'scout',
-        avatar: `https://i.pravatar.cc/150?u=${form.alias}`,
+        avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(form.alias.trim())}`,
       });
+      // AppNavigator muestra el overlay automáticamente al detectar currentUserId
+    } catch (err: any) {
+      const msg: string = err?.message ?? '';
+
+      if (Array.isArray(err?.detalles) && err.detalles.length > 0) {
+        const fieldErrs: Partial<Record<FormKey, string>> = {};
+        const loose: string[] = [];
+        for (const { campo, mensaje } of err.detalles as { campo: string; mensaje: string }[]) {
+          if (campo in INITIAL) fieldErrs[campo as FormKey] = mensaje;
+          else loose.push(mensaje);
+        }
+        if (Object.keys(fieldErrs).length) setErrors(prev => ({ ...prev, ...fieldErrs }));
+        setGeneralError(loose.length ? loose.join(' ') : 'Corregí los campos marcados arriba.');
+        return;
+      }
+
+      if (msg.toLowerCase().includes('correo') || msg.toLowerCase().includes('registrado')) {
+        setGeneralError('Ya existe una cuenta con ese correo. Intentá iniciar sesión.');
+      } else if (msg.includes('Sin conexión') || msg.includes('Network')) {
+        setGeneralError('No se pudo conectar al servidor. Verificá tu red.');
+      } else {
+        setGeneralError(msg || 'No se pudo crear la cuenta. Intentá de nuevo.');
+      }
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
-  const F = ({ label, id, ...props }: any) => (
+  const renderInput = (id: FormKey, label: string, props: any = {}) => (
     <Input
+      key={id}
       label={label}
-      value={form[id as FormKey]}
+      value={form[id]}
       onChangeText={(v: string) => setField(id, v)}
-      error={errors[id as FormKey]}
+      error={errors[id]}
       {...props}
     />
   );
@@ -96,27 +144,32 @@ export default function RegisterScreen({ navigation }: any) {
           </View>
         </View>
 
+        {generalError && (
+          <View style={{
+            flexDirection: 'row', alignItems: 'center', gap: 8,
+            backgroundColor: '#FEE2E2', borderRadius: 12, padding: 14,
+            borderLeftWidth: 3, borderLeftColor: '#EF4444',
+          }}>
+            <AlertCircle size={16} color="#EF4444" />
+            <Text style={{ flex: 1, fontSize: 13, color: '#B91C1C', lineHeight: 18 }}>
+              {generalError}
+            </Text>
+          </View>
+        )}
+
         <View style={{ backgroundColor: Colors.bgCard, borderRadius: 20, padding: 20, gap: 14 }}>
           <Text style={{ fontSize: 13, fontWeight: '700', color: Colors.accent, letterSpacing: 1 }}>
             INFORMACIÓN PERSONAL
           </Text>
-
-          <F id="nombres" label="Nombre completo *" placeholder="Juan Pérez Rojas" autoCapitalize="words" />
-          <F
-            id="correo"
-            label="Correo electrónico *"
-            placeholder="juan@correo.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <F id="cedula" label="Cédula *" placeholder="1-0000-0000" />
-          <F id="telefono" label="Teléfono *" placeholder="8888-0000" keyboardType="phone-pad" />
-          <F id="telefonoSinpe" label="Teléfono SINPE" placeholder="Mismo u otro" keyboardType="phone-pad" />
-          <F id="alias" label="Alias / Nombre público *" placeholder="juanP" autoCapitalize="none" />
-          <F id="password" label="Contraseña *" placeholder="Mín. 6 caracteres" secureTextEntry />
-          <F id="passwordConfirm" label="Confirmar contraseña *" placeholder="Repetí la contraseña" secureTextEntry />
-          <F id="direccion" label="Dirección" placeholder="San José, Costa Rica" />
+          {renderInput('nombres', 'Nombre completo *', { placeholder: 'Juan Pérez Rojas', autoCapitalize: 'words' })}
+          {renderInput('correo', 'Correo electrónico *', { placeholder: 'juan@correo.com', keyboardType: 'email-address', autoCapitalize: 'none', autoCorrect: false })}
+          {renderInput('cedula', 'Cédula *', { placeholder: '1-0000-0000' })}
+          {renderInput('telefono', 'Teléfono *', { placeholder: '8888-0000', keyboardType: 'phone-pad' })}
+          {renderInput('telefonoSinpe', 'Teléfono SINPE', { placeholder: 'Mismo u otro', keyboardType: 'phone-pad' })}
+          {renderInput('alias', 'Alias / Nombre público *', { placeholder: 'juanP', autoCapitalize: 'none' })}
+          {renderInput('password', 'Contraseña *', { placeholder: 'Mín. 6 caracteres', secureTextEntry: true })}
+          {renderInput('passwordConfirm', 'Confirmar contraseña *', { placeholder: 'Repetí la contraseña', secureTextEntry: true })}
+          {renderInput('direccion', 'Dirección', { placeholder: 'San José, Costa Rica' })}
         </View>
 
         <Button
@@ -124,7 +177,11 @@ export default function RegisterScreen({ navigation }: any) {
           onPress={handleRegister}
           disabled={loading}
         />
-        <Button title="Ya tengo cuenta" onPress={() => navigation.goBack()} variant="ghost" />
+        <Button
+          title="Ya tengo cuenta"
+          onPress={() => navigation.goBack()}
+          variant="ghost"
+        />
       </ScrollView>
     </SafeAreaView>
   );
