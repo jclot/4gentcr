@@ -9,7 +9,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // CONFIGURACION
-export const API_BASE_URL = 'http://192.168.20.6:3001'; // Mi ip
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.20.6:3001';
 const TOKEN_KEY = '@virtualagent_token';
 
 let _token: string | null = null;
