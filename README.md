@@ -1,6 +1,6 @@
-<p align="center">
+<!-- <p align="center">
   <img src="./assets/icon.png" alt="Virtual Agent Logo" width="120" />
-</p>
+</p> -->
 
 <h1 align="center">Virtual Agent</h1>
 <h3 align="center">El Uber de Bienes Raíces</h3>
