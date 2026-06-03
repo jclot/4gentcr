@@ -229,25 +229,6 @@ Escanea el código QR con **Expo Go** en tu dispositivo o presiona `a` para Andr
 
 ---
 
-## Variables de entorno
-
-Crea un archivo `.env` en la raíz del proyecto con el siguiente contenido:
-
-```env
-# URL base del servidor backend
-EXPO_PUBLIC_API_URL=https://fourgentcr.onrender.com
-```
-
-> Las variables con prefijo `EXPO_PUBLIC_` quedan disponibles en el cliente. No incluyas secretos sensibles con este prefijo.
-
-Para desarrollo local con el backend corriendo en tu máquina:
-
-```env
-EXPO_PUBLIC_API_URL=http://192.168.X.X:3001
-```
-
----
-
 ## Scripts principales
 
 | Comando | Descripción |
@@ -399,5 +380,5 @@ Para consultas sobre el proyecto, contactar al equipo de desarrollo.
 ---
 
 <p align="center">
-  Desarrollado con ❤️ en Costa Rica · Virtual Agent © 2025
+  Desarrollado en Costa Rica · Virtual Agent © 2025
 </p>
