@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   MockDatabase,
   User,
@@ -25,6 +26,28 @@ import {
   loadToken,
   InitMeta,
 } from '../services/api';
+import { loginWith2FA } from '../services/authService';
+
+// ── 2FA persistence helpers ───────────────────────────────────────────────────
+// The real backend doesn't store twoFAEnabled; we persist it client-side.
+const TWO_FA_KEY = '@virtualagent_2fa';
+
+async function _load2FASettings(): Promise<Record<string, boolean>> {
+  try {
+    const raw = await AsyncStorage.getItem(TWO_FA_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+async function _save2FASettings(userId: string, enabled: boolean): Promise<void> {
+  try {
+    const current = await _load2FASettings();
+    current[userId] = enabled;
+    await AsyncStorage.setItem(TWO_FA_KEY, JSON.stringify(current));
+  } catch {}
+}
 
 // ── Estado inicial limpio ────────────────────────────────────────────────────
 const EMPTY_DB: MockDatabase = {
@@ -34,6 +57,12 @@ const EMPTY_DB: MockDatabase = {
   currentUserId: null,
 };
 
+interface TwoFAPending {
+  userId: string;
+  tempToken: string;
+  email: string;
+}
+
 interface PaginationState {
   propertiesMeta: InitMeta | null;
   isLoadingMore: boolean;
@@ -42,6 +71,7 @@ interface PaginationState {
 interface AppStore extends PaginationState {
   db: MockDatabase;
   isLoading: boolean;
+  twoFAPending: TwoFAPending | null;
 
   // ── Init ──
   initStore: () => Promise<void>;
@@ -50,11 +80,17 @@ interface AppStore extends PaginationState {
   /**
    * Lanza un Error con el mensaje del servidor si las credenciales fallan.
    * El componente de login debe envolver la llamada en try/catch.
+   * Si el usuario tiene 2FA activo, establece twoFAPending en lugar de completar el login.
    */
   login: (correo: string, password: string) => Promise<User>;
   register: (data: Omit<User, 'id' | 'totalIngresos' | 'propiedadesCapturadas' | 'propiedadesGestionadas' | 'propiedadesVendidas' | 'createdAt'>) => Promise<User>;
   logout: () => Promise<void>;
   getCurrentUser: () => User | null;
+
+  // ── 2FA ──
+  completeTwoFALogin: (pin: string) => Promise<void>;
+  cancelTwoFALogin: () => void;
+  setTwoFAEnabled: (userId: string, enabled: boolean) => void;
 
   // ── Users CRUD ──
   updateUser: (userId: string, data: Partial<User>) => Promise<void>;
@@ -99,11 +135,14 @@ async function _hydrateSession(
   }
 
   // Cargar datos iniciales (primera página ya paginada)
-  const apiData = await apiInit();
+  const [apiData, twoFASettings] = await Promise.all([apiInit(), _load2FASettings()]);
 
   set({
     db: {
-      users: apiData.users,
+      users: apiData.users.map((u: any) => ({
+        ...u,
+        twoFAEnabled: twoFASettings[u.id] ?? false,
+      })),
       properties: apiData.properties,
       community: apiData.community,
       currentUserId,
@@ -118,6 +157,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   isLoading: true,
   isLoadingMore: false,
   propertiesMeta: null,
+  twoFAPending: null,
 
   // ── INIT ─────────────────────────────────────────────────────────────────
   initStore: async () => {
@@ -151,6 +191,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
   login: async (correo, password) => {
     // Puede lanzar Error con mensaje del servidor (ej. "Credenciales incorrectas.")
     const { token, user } = await apiLogin(correo, password);
+
+    // The backend doesn't store twoFAEnabled; consult the local AsyncStorage record.
+    const twoFASettings = await _load2FASettings();
+    if (twoFASettings[user.id]) {
+      set({ twoFAPending: { userId: user.id, tempToken: token, email: correo } });
+      return user;
+    }
 
     await setToken(token);
 
@@ -210,6 +257,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       isLoading: false,
       isLoadingMore: false,
       propertiesMeta: null,
+      twoFAPending: null,
     });
   },
 
@@ -217,6 +265,30 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const { db } = get();
     if (!db.currentUserId) return null;
     return db.users.find((u) => u.id === db.currentUserId) ?? null;
+  },
+
+  // ── 2FA ──────────────────────────────────────────────────────────────────
+
+  completeTwoFALogin: async (pin: string) => {
+    const { twoFAPending } = get();
+    if (!twoFAPending) return;
+    // Validates PIN against the mock backend (may throw on invalid format)
+    await loginWith2FA(twoFAPending.email, '', pin);
+    await setToken(twoFAPending.tempToken);
+    await _hydrateSession(twoFAPending.tempToken, set);
+    set({ twoFAPending: null });
+  },
+
+  cancelTwoFALogin: () => set({ twoFAPending: null }),
+
+  setTwoFAEnabled: (userId: string, enabled: boolean) => {
+    set((s) => ({
+      db: {
+        ...s.db,
+        users: s.db.users.map((u) => (u.id === userId ? { ...u, twoFAEnabled: enabled } : u)),
+      },
+    }));
+    _save2FASettings(userId, enabled);
   },
 
   // ── USERS CRUD ────────────────────────────────────────────────────────────

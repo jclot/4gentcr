@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Home, Camera, ShieldCheck } from 'lucide-react-native';
-import { Colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -44,6 +44,8 @@ const SLIDES = [
 ];
 
 export default function WalkthroughScreen({ onFinish }: WalkthroughScreenProps) {
+  const { colors: C, fs } = useTheme();
+  const styles = useMemo(() => makeStyles(C, fs), [C, fs]);
   const listRef = useRef<FlatList<any>>(null);
   const [index, setIndex] = useState(0);
 
@@ -87,7 +89,7 @@ export default function WalkthroughScreen({ onFinish }: WalkthroughScreenProps) 
           return (
             <View style={styles.slide}>
               <View style={styles.iconWrap}>
-                <Icon size={52} color={Colors.accent} />
+                <Icon size={52} color={C.accent} />
               </View>
               <Text style={styles.title}>{item.title}</Text>
               <Text style={styles.description}>{item.description}</Text>
@@ -114,16 +116,16 @@ export default function WalkthroughScreen({ onFinish }: WalkthroughScreenProps) 
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
+const makeStyles = (C: any, fs: (n: number) => number) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: C.bg },
   topBar: {
     paddingHorizontal: 20,
-    paddingTop: 60, 
+    paddingTop: 60,
     justifyContent: 'center',
     alignItems: 'flex-end',
-    minHeight: 44, 
+    minHeight: 44,
   },
-  skip: { color: Colors.textSecondary, fontSize: 14, fontWeight: '600' },
+  skip: { color: C.textSecondary, fontSize: fs(14), fontWeight: '600' },
   slide: {
     width,
     paddingHorizontal: 24,
@@ -132,55 +134,16 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   iconWrap: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-    backgroundColor: Colors.accentLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
+    width: 112, height: 112, borderRadius: 56, backgroundColor: C.accentLight,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: C.border,
   },
-  title: {
-    color: Colors.textPrimary,
-    fontSize: 28,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  description: {
-    color: Colors.textSecondary,
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'center',
-    maxWidth: 340,
-  },
-  bottom: {
-    paddingHorizontal: 24,
-    paddingBottom: 28,
-    gap: 18,
-  },
-  dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.border,
-  },
-  dotActive: {
-    width: 22,
-    backgroundColor: Colors.accent,
-  },
-  cta: {
-    backgroundColor: Colors.accent,
-    borderRadius: 14,
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ctaText: { color: Colors.white, fontSize: 16, fontWeight: '700' },
+  title: { color: C.textPrimary, fontSize: fs(28), fontWeight: '800', textAlign: 'center' },
+  description: { color: C.textSecondary, fontSize: fs(15), lineHeight: 22, textAlign: 'center', maxWidth: 340 },
+  bottom: { paddingHorizontal: 24, paddingBottom: 28, gap: 18 },
+  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.border },
+  dotActive: { width: 22, backgroundColor: C.accent },
+  cta: { backgroundColor: C.accent, borderRadius: 14, height: 52, alignItems: 'center', justifyContent: 'center' },
+  ctaText: { color: C.white, fontSize: fs(16), fontWeight: '700' },
 });

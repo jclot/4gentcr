@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { Animated, View, Text, StyleSheet } from 'react-native';
 import { Home } from 'lucide-react-native';
-import { Colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 
 interface Props {
     loading: boolean;
@@ -11,6 +11,7 @@ interface Props {
 }
 
 function Dots() {
+    const { colors: C } = useTheme();
     const d0 = useRef(new Animated.Value(0.3)).current;
     const d1 = useRef(new Animated.Value(0.3)).current;
     const d2 = useRef(new Animated.Value(0.3)).current;
@@ -37,7 +38,7 @@ function Dots() {
                     key={i}
                     style={{
                         width: 9, height: 9, borderRadius: 5,
-                        backgroundColor: Colors.accent,
+                        backgroundColor: C.accent,
                         opacity: anim,
                     }}
                 />
@@ -47,12 +48,13 @@ function Dots() {
 }
 
 export default function SplashScreen({ loading, onHidden, skipEntrance = false }: Props) {
-    // Si skipEntrance, el contenido arranca ya visible
+    const { colors: C, fs } = useTheme();
+    const styles = useMemo(() => makeStyles(C, fs), [C, fs]);
+
     const contentOpacity = useRef(new Animated.Value(skipEntrance ? 1 : 0)).current;
     const contentScale = useRef(new Animated.Value(skipEntrance ? 1 : 0.82)).current;
     const screenOpacity = useRef(new Animated.Value(1)).current;
 
-    // Animación de entrada (solo cuando NO es skipEntrance)
     useEffect(() => {
         if (skipEntrance) return;
 
@@ -66,7 +68,6 @@ export default function SplashScreen({ loading, onHidden, skipEntrance = false }
         ]).start();
     }, []);
 
-    // Salida: cuando loading pasa a false
     useEffect(() => {
         if (loading) return;
 
@@ -103,24 +104,24 @@ export default function SplashScreen({ loading, onHidden, skipEntrance = false }
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: any, fs: (n: number) => number) => StyleSheet.create({
     container: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: Colors.bg,
+        backgroundColor: C.bg,
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 999,
     },
     iconWrap: {
-        backgroundColor: Colors.accent,
+        backgroundColor: C.accent,
         padding: 24,
         borderRadius: 32,
-        shadowColor: Colors.accent,
+        shadowColor: C.accent,
         shadowOffset: { width: 0, height: 12 },
         shadowOpacity: 0.5,
         shadowRadius: 24,
         elevation: 14,
     },
-    title: { fontSize: 34, fontWeight: '800', color: Colors.textPrimary, letterSpacing: 0.5 },
-    subtitle: { fontSize: 14, color: Colors.accent, fontWeight: '500' },
+    title: { fontSize: fs(34), fontWeight: '800', color: C.textPrimary, letterSpacing: 0.5 },
+    subtitle: { fontSize: fs(14), color: C.accent, fontWeight: '500' },
 });

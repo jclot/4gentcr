@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/useAppStore';
-import { Colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
 import { isValidEmail } from '../../utils/locationUtils';
 import { Home, AlertCircle } from 'lucide-react-native';
 import Input from '../../components/Input';
@@ -17,8 +17,9 @@ export default function LoginScreen({ navigation }: any) {
   const [errors, setErrors] = useState<{ correo?: string; password?: string }>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
   const { login } = useAppStore();
+  const { colors: C, fs } = useTheme();
+  const styles = useMemo(() => makeStyles(C, fs), [C, fs]);
 
   const validate = (): boolean => {
     const e: typeof errors = {};
@@ -42,8 +43,6 @@ export default function LoginScreen({ navigation }: any) {
     setLoading(true);
     try {
       await login(correo.trim().toLowerCase(), password);
-      // El AppNavigator detecta el cambio en currentUserId y muestra
-      // el AuthTransitionOverlay automáticamente. No hay que hacer nada aquí.
     } catch (err: any) {
       const msg: string = err?.message ?? '';
       if (msg === 'UNAUTHORIZED' || msg.toLowerCase().includes('credenciales')) {
@@ -71,7 +70,6 @@ export default function LoginScreen({ navigation }: any) {
           keyboardDismissMode="on-drag"
           automaticallyAdjustKeyboardInsets
         >
-          {/* Header */}
           <View style={styles.header}>
             <View style={styles.iconContainer}>
               <Home size={48} color="#FFFFFF" />
@@ -80,13 +78,12 @@ export default function LoginScreen({ navigation }: any) {
             <Text style={styles.subtitle}>El Uber de Bienes Raíces</Text>
           </View>
 
-          {/* Formulario */}
           <View style={styles.form}>
             <Text style={styles.formTitle}>Iniciar Sesión</Text>
 
             {generalError && (
               <View style={styles.errorBanner}>
-                <AlertCircle size={16} color="#EF4444" />
+                <AlertCircle size={16} color={C.danger} />
                 <Text style={styles.errorBannerText}>{generalError}</Text>
               </View>
             )}
@@ -132,13 +129,10 @@ export default function LoginScreen({ navigation }: any) {
               disabled={loading}
             />
 
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Register')}
-              style={styles.linkBtn}
-            >
+            <TouchableOpacity onPress={() => navigation.navigate('Register')} style={styles.linkBtn}>
               <Text style={styles.link}>
                 ¿No tenés cuenta?{' '}
-                <Text style={{ color: Colors.accent }}>Registrate</Text>
+                <Text style={{ color: C.accent }}>Registrate</Text>
               </Text>
             </TouchableOpacity>
           </View>
@@ -148,29 +142,27 @@ export default function LoginScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
+const makeStyles = (C: any, fs: (n: number) => number) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: C.bg },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 24, paddingBottom: 56 },
   header: { alignItems: 'center', marginBottom: 40 },
   iconContainer: {
-    backgroundColor: Colors.accent,
-    padding: 20, borderRadius: 24, marginBottom: 16,
-    shadowColor: Colors.accent,
-    shadowOffset: { width: 0, height: 8 },
+    backgroundColor: C.accent, padding: 20, borderRadius: 24, marginBottom: 16,
+    shadowColor: C.accent, shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4, shadowRadius: 16, elevation: 10,
   },
-  title: { fontSize: 32, fontWeight: '800', color: Colors.textPrimary, letterSpacing: 1 },
-  subtitle: { fontSize: 14, color: Colors.accent, marginTop: 4 },
-  form: { backgroundColor: Colors.bgCard, borderRadius: 20, padding: 24, gap: 16 },
-  formTitle: { fontSize: 22, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
+  title: { fontSize: fs(32), fontWeight: '800', color: C.textPrimary, letterSpacing: 1 },
+  subtitle: { fontSize: fs(14), color: C.accent, marginTop: 4 },
+  form: { backgroundColor: C.bgCard, borderRadius: 20, padding: 24, gap: 16 },
+  formTitle: { fontSize: fs(22), fontWeight: '700', color: C.textPrimary, marginBottom: 8 },
   errorBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#FEE2E2', borderRadius: 10, padding: 12,
-    borderLeftWidth: 3, borderLeftColor: '#EF4444',
+    backgroundColor: C.dangerLight, borderRadius: 10, padding: 12,
+    borderLeftWidth: 3, borderLeftColor: C.danger,
   },
-  errorBannerText: { flex: 1, fontSize: 13, color: '#B91C1C', lineHeight: 18 },
-  hint: { backgroundColor: Colors.accentLight, borderRadius: 10, padding: 12 },
-  hintText: { fontSize: 12, color: Colors.accent, lineHeight: 20 },
+  errorBannerText: { flex: 1, fontSize: fs(13), color: C.danger, lineHeight: 18 },
+  hint: { backgroundColor: C.accentLight, borderRadius: 10, padding: 12 },
+  hintText: { fontSize: fs(12), color: C.accent, lineHeight: 20 },
   linkBtn: { alignItems: 'center', marginTop: 8 },
-  link: { color: Colors.textSecondary, fontSize: 14 },
+  link: { color: C.textSecondary, fontSize: fs(14) },
 });

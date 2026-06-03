@@ -4,7 +4,7 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppStore } from '../store/useAppStore';
-import { Colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 import {
   WALKTHROUGH_ENABLED,
   WALKTHROUGH_FORCE_SHOW_IN_DEV,
@@ -16,6 +16,7 @@ import UserNavigator from './UserNavigator';
 import AdminNavigator from './AdminNavigator';
 import SplashScreen from '../screens/SplashScreen';
 import WalkthroughScreen from '../screens/WalkthroughScreen';
+import TwoFAChallengeScreen from '../screens/auth/TwoFAChallengeScreen';
 
 import PersonalDataScreen from '../screens/profile/PersonalDataScreen';
 import CustomizationScreen from '../screens/profile/CustomizationScreen';
@@ -27,19 +28,13 @@ import RulesScreen from '../screens/profile/RulesScreen';
 
 const Stack = createNativeStackNavigator();
 
-const AppTheme = {
-  ...DefaultTheme,
-  colors: { ...DefaultTheme.colors, background: Colors.bg },
-};
-
 export default function AppNavigator() {
-  const { initStore, getCurrentUser, isLoading } = useAppStore();
+  const { initStore, getCurrentUser, isLoading, twoFAPending } = useAppStore();
+  const { colors } = useTheme();
 
   const [splashDone, setSplashDone] = useState(false);
-
   const [showAuthSplash, setShowAuthSplash] = useState(false);
   const [authSplashLoading, setAuthSplashLoading] = useState(true);
-
   const [showWalkthrough, setShowWalkthrough] = useState(false);
   const [walkthroughChecked, setWalkthroughChecked] = useState(false);
 
@@ -51,32 +46,20 @@ export default function AppNavigator() {
 
   useEffect(() => {
     let isMounted = true;
-
     const loadWalkthrough = async () => {
       try {
         const seen = await AsyncStorage.getItem(WALKTHROUGH_STORAGE_KEY);
         const forceInDev = __DEV__ && WALKTHROUGH_FORCE_SHOW_IN_DEV;
         const shouldShow = WALKTHROUGH_ENABLED && (forceInDev || seen !== '1');
-
-        if (isMounted) {
-          setShowWalkthrough(shouldShow);
-        }
+        if (isMounted) setShowWalkthrough(shouldShow);
       } catch {
-        if (isMounted) {
-          setShowWalkthrough(false);
-        }
+        if (isMounted) setShowWalkthrough(false);
       } finally {
-        if (isMounted) {
-          setWalkthroughChecked(true);
-        }
+        if (isMounted) setWalkthroughChecked(true);
       }
     };
-
     loadWalkthrough();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
   const user = getCurrentUser();
@@ -94,26 +77,32 @@ export default function AppNavigator() {
       prevUserIdRef.current = user?.id ?? null;
       return;
     }
-
     if (!prevUserIdRef.current && user?.id) {
       setAuthSplashLoading(true);
       setShowAuthSplash(true);
-
       const t = setTimeout(() => setAuthSplashLoading(false), 700);
       return () => clearTimeout(t);
     }
-
     prevUserIdRef.current = user?.id ?? null;
   }, [user?.id]);
 
   const shouldShowWalkthrough = walkthroughChecked && splashDone && showWalkthrough;
   const canRenderApp = splashDone && walkthroughChecked && !showWalkthrough;
 
+  const appNavTheme = {
+    ...DefaultTheme,
+    colors: { ...DefaultTheme.colors, background: colors.bg },
+  };
+
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.bg }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       {canRenderApp && (
-        <NavigationContainer theme={AppTheme}>
-          {!user ? (
+        <NavigationContainer theme={appNavTheme}>
+          {!user && twoFAPending ? (
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="TwoFAChallenge" component={TwoFAChallengeScreen} />
+            </Stack.Navigator>
+          ) : !user ? (
             <AuthNavigator />
           ) : (
             <Stack.Navigator screenOptions={{ headerShown: false }}>

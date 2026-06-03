@@ -1,6 +1,6 @@
-import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { Colors } from '../theme/colors';
+import React, { useMemo } from 'react';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
 
 interface ButtonProps {
   title: string;
@@ -10,17 +10,13 @@ interface ButtonProps {
 }
 
 export default function Button({ title, onPress, variant = 'primary', disabled }: ButtonProps) {
+  const { colors: C, fs } = useTheme();
+  const styles = useMemo(() => makeStyles(C, fs), [C, fs]);
   const isPrimary = variant === 'primary';
   const isDanger = variant === 'danger';
   return (
     <TouchableOpacity
-      style={[
-        styles.btn,
-        isPrimary && styles.primary,
-        variant === 'ghost' && styles.ghost,
-        isDanger && styles.danger,
-        disabled && styles.disabled,
-      ]}
+      style={[styles.btn, isPrimary && styles.primary, variant === 'ghost' && styles.ghost, isDanger && styles.danger, disabled && styles.disabled]}
       onPress={onPress}
       disabled={disabled}
       activeOpacity={0.8}
@@ -32,13 +28,13 @@ export default function Button({ title, onPress, variant = 'primary', disabled }
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: any, fs: (n: number) => number) => StyleSheet.create({
   btn: { borderRadius: 14, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
-  primary: { backgroundColor: Colors.accent },
-  ghost: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: Colors.border },
-  danger: { backgroundColor: Colors.dangerLight, borderWidth: 1, borderColor: Colors.danger },
+  primary: { backgroundColor: C.accent },
+  ghost: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: C.border },
+  danger: { backgroundColor: C.dangerLight, borderWidth: 1, borderColor: C.danger },
   disabled: { opacity: 0.5 },
-  text: { fontSize: 16, fontWeight: '700', color: Colors.white },
-  textGhost: { color: Colors.textSecondary },
-  textDanger: { color: Colors.danger },
+  text: { fontSize: fs(16), fontWeight: '700', color: C.white },
+  textGhost: { color: C.textSecondary },
+  textDanger: { color: C.danger },
 });

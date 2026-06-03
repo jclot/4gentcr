@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet } from 'react-native';
-import { Colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 
 interface Props {
   visible: boolean;
@@ -8,21 +8,13 @@ interface Props {
   duration?: number;
 }
 
-/**
- * Overlay que hace fade-in sobre el screen actual para enmascarar
- * el cambio de pantalla. Se activa cuando visible pasa a true.
- */
 export default function AuthOverlay({ visible, onComplete, duration = 380 }: Props) {
+  const { colors } = useTheme();
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!visible) return;
-
-    Animated.timing(opacity, {
-      toValue: 1,
-      duration,
-      useNativeDriver: true,
-    }).start(() => onComplete?.());
+    Animated.timing(opacity, { toValue: 1, duration, useNativeDriver: true }).start(() => onComplete?.());
   }, [visible]);
 
   if (!visible) return null;
@@ -30,7 +22,7 @@ export default function AuthOverlay({ visible, onComplete, duration = 380 }: Pro
   return (
     <Animated.View
       pointerEvents="none"
-      style={[StyleSheet.absoluteFill, { backgroundColor: Colors.bg, opacity }]}
+      style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg, opacity }]}
     />
   );
 }

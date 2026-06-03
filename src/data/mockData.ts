@@ -19,6 +19,7 @@ export interface User {
   propiedadesGestionadas: number;
   propiedadesVendidas: number;
   createdAt: string;
+  twoFAEnabled?: boolean;
 }
 
 export interface Property {

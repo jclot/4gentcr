@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/useAppStore';
-import { Colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
 import { isValidEmail } from '../../utils/locationUtils';
 import { UserPlus, AlertCircle } from 'lucide-react-native';
 import Input from '../../components/Input';
@@ -22,8 +22,8 @@ export default function RegisterScreen({ navigation }: any) {
   const [errors, setErrors] = useState<Partial<Record<FormKey, string>>>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
   const { register } = useAppStore();
+  const { colors: C, fs } = useTheme();
 
   const setField = (key: FormKey, value: string) => {
     setForm(f => ({ ...f, [key]: value }));
@@ -87,7 +87,6 @@ export default function RegisterScreen({ navigation }: any) {
         role: 'scout',
         avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(form.alias.trim())}`,
       });
-      // AppNavigator muestra el overlay automáticamente al detectar currentUserId
     } catch (err: any) {
       const msg: string = err?.message ?? '';
 
@@ -127,7 +126,7 @@ export default function RegisterScreen({ navigation }: any) {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -139,56 +138,56 @@ export default function RegisterScreen({ navigation }: any) {
           keyboardDismissMode="on-drag"
           automaticallyAdjustKeyboardInsets
         >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <UserPlus size={36} color={Colors.textPrimary} />
-          <View>
-            <Text style={{ fontSize: 24, fontWeight: '800', color: Colors.textPrimary }}>
-              Crear Cuenta
-            </Text>
-            <Text style={{ fontSize: 13, color: Colors.textSecondary, marginTop: 2 }}>
-              Únete a Virtual Agent como Scout
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            <UserPlus size={36} color={C.textPrimary} />
+            <View>
+              <Text style={{ fontSize: fs(24), fontWeight: '800', color: C.textPrimary }}>
+                Crear Cuenta
+              </Text>
+              <Text style={{ fontSize: fs(13), color: C.textSecondary, marginTop: 2 }}>
+                Únete a Virtual Agent como Scout
+              </Text>
+            </View>
           </View>
-        </View>
 
-        {generalError && (
-          <View style={{
-            flexDirection: 'row', alignItems: 'center', gap: 8,
-            backgroundColor: '#FEE2E2', borderRadius: 12, padding: 14,
-            borderLeftWidth: 3, borderLeftColor: '#EF4444',
-          }}>
-            <AlertCircle size={16} color="#EF4444" />
-            <Text style={{ flex: 1, fontSize: 13, color: '#B91C1C', lineHeight: 18 }}>
-              {generalError}
+          {generalError && (
+            <View style={{
+              flexDirection: 'row', alignItems: 'center', gap: 8,
+              backgroundColor: C.dangerLight, borderRadius: 12, padding: 14,
+              borderLeftWidth: 3, borderLeftColor: C.danger,
+            }}>
+              <AlertCircle size={16} color={C.danger} />
+              <Text style={{ flex: 1, fontSize: fs(13), color: C.danger, lineHeight: 18 }}>
+                {generalError}
+              </Text>
+            </View>
+          )}
+
+          <View style={{ backgroundColor: C.bgCard, borderRadius: 20, padding: 20, gap: 14 }}>
+            <Text style={{ fontSize: fs(13), fontWeight: '700', color: C.accent, letterSpacing: 1 }}>
+              INFORMACIÓN PERSONAL
             </Text>
+            {renderInput('nombres', 'Nombre completo *', { placeholder: 'Juan Pérez Rojas', autoCapitalize: 'words' })}
+            {renderInput('correo', 'Correo electrónico *', { placeholder: 'juan@correo.com', keyboardType: 'email-address', autoCapitalize: 'none', autoCorrect: false })}
+            {renderInput('cedula', 'Cédula *', { placeholder: '1-0000-0000' })}
+            {renderInput('telefono', 'Teléfono *', { placeholder: '8888-0000', keyboardType: 'phone-pad' })}
+            {renderInput('telefonoSinpe', 'Teléfono SINPE', { placeholder: 'Mismo u otro', keyboardType: 'phone-pad' })}
+            {renderInput('alias', 'Alias / Nombre público *', { placeholder: 'juanP', autoCapitalize: 'none' })}
+            {renderInput('password', 'Contraseña *', { placeholder: 'Mín. 6 caracteres', secureTextEntry: true })}
+            {renderInput('passwordConfirm', 'Confirmar contraseña *', { placeholder: 'Repetí la contraseña', secureTextEntry: true })}
+            {renderInput('direccion', 'Dirección', { placeholder: 'San José, Costa Rica' })}
           </View>
-        )}
 
-        <View style={{ backgroundColor: Colors.bgCard, borderRadius: 20, padding: 20, gap: 14 }}>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: Colors.accent, letterSpacing: 1 }}>
-            INFORMACIÓN PERSONAL
-          </Text>
-          {renderInput('nombres', 'Nombre completo *', { placeholder: 'Juan Pérez Rojas', autoCapitalize: 'words' })}
-          {renderInput('correo', 'Correo electrónico *', { placeholder: 'juan@correo.com', keyboardType: 'email-address', autoCapitalize: 'none', autoCorrect: false })}
-          {renderInput('cedula', 'Cédula *', { placeholder: '1-0000-0000' })}
-          {renderInput('telefono', 'Teléfono *', { placeholder: '8888-0000', keyboardType: 'phone-pad' })}
-          {renderInput('telefonoSinpe', 'Teléfono SINPE', { placeholder: 'Mismo u otro', keyboardType: 'phone-pad' })}
-          {renderInput('alias', 'Alias / Nombre público *', { placeholder: 'juanP', autoCapitalize: 'none' })}
-          {renderInput('password', 'Contraseña *', { placeholder: 'Mín. 6 caracteres', secureTextEntry: true })}
-          {renderInput('passwordConfirm', 'Confirmar contraseña *', { placeholder: 'Repetí la contraseña', secureTextEntry: true })}
-          {renderInput('direccion', 'Dirección', { placeholder: 'San José, Costa Rica' })}
-        </View>
-
-        <Button
-          title={loading ? 'Creando cuenta...' : 'Crear Cuenta'}
-          onPress={handleRegister}
-          disabled={loading}
-        />
-        <Button
-          title="Ya tengo cuenta"
-          onPress={() => navigation.goBack()}
-          variant="ghost"
-        />
+          <Button
+            title={loading ? 'Creando cuenta...' : 'Crear Cuenta'}
+            onPress={handleRegister}
+            disabled={loading}
+          />
+          <Button
+            title="Ya tengo cuenta"
+            onPress={() => navigation.goBack()}
+            variant="ghost"
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

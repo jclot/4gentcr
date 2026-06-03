@@ -10,6 +10,15 @@
     },
     "plugins": [
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#6C63FF",
+          "iosDisplayInForeground": true,
+          "androidMode": "default"
+        }
+      ],
+      [
         "expo-camera",
         {
           "cameraPermission": "Necesitamos acceso a la cámara para fotografiar carteles."
